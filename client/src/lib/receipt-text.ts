@@ -153,8 +153,9 @@ export class ReceiptTextFormatter {
       out.push(this.padLine(label, this.money(billData.totals.gst, billData.currency)));
     }
 
-    if (billData.totals.discount && billData.totals.discount > 0) {
-      out.push(this.padLine("Discount", this.money(billData.totals.discount, billData.currency)));
+    const discountAbs = Math.abs(billData.totals.discount ?? 0);
+    if (discountAbs > 0) {
+      out.push(this.padLine("Discount", `-${this.money(discountAbs, billData.currency)}`));
     }
 
     if (billData.totals.roundOff && billData.totals.roundOff !== 0) {

@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Utensils, Plus, Loader2, RefreshCw, Edit2, Trash2, User, Receipt, DollarSign, CreditCard, QrCode, MinusCircle, Percent } from "lucide-react";
+import { Utensils, Plus, Loader2, RefreshCw, Edit2, Trash2, User, Receipt, DollarSign, CreditCard, QrCode, MinusCircle, Percent, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -36,6 +36,7 @@ import {
   useCloseOrder,
   useUpdateOrder,
   useRemoveOrderServiceCharge,
+  useRestaurantLogo,
 } from "@/hooks/api";
 import type { Table, TableStatus, MenuItem, Order, PaymentMethod } from "@/types";
 import type { POSCartLineItem, POSCustomizationSelection } from "@/types/pos";
@@ -53,10 +54,18 @@ import {
 import { MobilePOS } from "@/components/pos/mobilepos";
 import { DesktopPOS } from "@/components/pos/desktoppos";
 import { getCustomizationSummary } from "@/components/menu/Customizedorderitemdisplay";
-
+import { useThermalPrinter } from "@/hooks/useThermalPrinter";
+import { buildBillDataFromOrder } from "@/lib/bill-data";
 export default function FloorMapPage() {
   const { restaurantId, user } = useAuth();
   const { data: restaurant } = useRestaurant(restaurantId);
+  const { data: restaurantLogo } = useRestaurantLogo(restaurantId);
+
+  const {
+    isConnected: isPrinterConnected,
+    isPrinting,
+    printBill: printThermalBill,
+  } = useThermalPrinter(32);
   const { data: tables, isLoading, refetch } = useTables(restaurantId);
   const { data: staff } = useStaff(restaurantId);
   const { data: menuData } = useMenuCategories(restaurantId, restaurant?.slug ?? null);
@@ -527,6 +536,30 @@ export default function FloorMapPage() {
     } catch (error: any) {
       console.error("❌ Payment error:", error);
       toast.error(error.message || "Failed to process payment");
+    }
+  };
+
+  const handleThermalPrint = async () => {
+    if (!selectedOrderForBill || !restaurant) {
+      toast.error("Bill data not available");
+      return;
+    }
+
+    if (!isPrinterConnected) {
+      toast.error("Printer not connected. Please connect your thermal printer first.");
+      return;
+    }
+
+    try {
+      const billData = buildBillDataFromOrder({
+        order: selectedOrderForBill,
+        restaurant,
+        currency,
+        restaurantLogo,
+      });
+      await printThermalBill(billData);
+    } catch (error) {
+      console.error("Thermal print error:", error);
     }
   };
 
@@ -1404,6 +1437,22 @@ export default function FloorMapPage() {
                   {selectedOrderForBill.paymentStatus || "DUE"}
                 </Badge>
               </div>
+
+              {/* Print Bill */}
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleThermalPrint}
+                disabled={isPrinting || !isPrinterConnected}
+                title={!isPrinterConnected ? "Pair/connect printer from the sidebar first" : undefined}
+              >
+                {isPrinting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Printer className="w-4 h-4 mr-2" />
+                )}
+                Print Bill
+              </Button>
 
               {/* Close Order - show only when paid + served and not already closed */}
               {selectedOrderForBill.paymentStatus === "PAID" &&

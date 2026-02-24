@@ -131,8 +131,9 @@ export class WhatsAppBillFormatter {
       lines.push(`${gstLabel}: ${this.money(billData.totals.gst, billData.currency)}`);
     }
 
-    if ((billData.totals.discount ?? 0) > 0) {
-      lines.push(`Discount: -${this.money(billData.totals.discount || 0, billData.currency)}`);
+    const discountAbs = Math.abs(billData.totals.discount ?? 0);
+    if (discountAbs > 0) {
+      lines.push(`Discount: -${this.money(discountAbs, billData.currency)}`);
     }
 
     if ((billData.totals.roundOff ?? 0) !== 0) {

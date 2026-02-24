@@ -63,7 +63,14 @@ export interface BillData {
 export class ESCPOSCommands {
   // Initialize printer
   static INIT = new Uint8Array([0x1b, 0x40]);
-  
+
+  // Font / character width
+  // Some printers keep condensed/font mode across operations; setting these explicitly
+  // helps keep column layouts stable.
+  static FONT_A = new Uint8Array([0x1b, 0x4d, 0x00]); // Font A (normal)
+  static FONT_B = new Uint8Array([0x1b, 0x4d, 0x01]); // Font B (smaller)
+  static CANCEL_CONDENSED = new Uint8Array([0x12]); // DC2 (cancel condensed mode on many ESC/POS devices)
+
   // Text formatting
   static BOLD_ON = new Uint8Array([0x1b, 0x45, 0x01]);
   static BOLD_OFF = new Uint8Array([0x1b, 0x45, 0x00]);
@@ -102,53 +109,97 @@ export class BluetoothPrinter {
   private device: BluetoothDevice | null = null;
   private characteristic: BluetoothRemoteGATTCharacteristic | null = null;
   private config: PrinterConfig;
+  private onDisconnected?: () => void;
 
-  constructor(config: PrinterConfig = { width: 32 }) {
+  constructor(config: PrinterConfig = { width: 32 }, opts?: { onDisconnected?: () => void }) {
     this.config = config;
+    this.onDisconnected = opts?.onDisconnected;
+  }
+
+  /** The currently attached Bluetooth device (if any). */
+  getDevice(): BluetoothDevice | null {
+    return this.device;
   }
 
   /**
-   * Connect to bluetooth printer
+   * Attach a Bluetooth device and wire disconnect listener.
+   */
+  private attachDevice(device: BluetoothDevice) {
+    // Clean up old listener if any
+    if (this.device && this.device !== device) {
+      try {
+        this.device.removeEventListener("gattserverdisconnected", this.handleGattDisconnected);
+      } catch {
+        // ignore
+      }
+    }
+
+    this.device = device;
+    try {
+      this.device.addEventListener("gattserverdisconnected", this.handleGattDisconnected);
+    } catch {
+      // ignore
+    }
+  }
+
+  private handleGattDisconnected = () => {
+    this.characteristic = null;
+    this.onDisconnected?.();
+  };
+
+  /**
+   * Connect to bluetooth printer (prompts user to choose a device)
    */
   async connect(): Promise<void> {
     try {
-      // Request bluetooth device
-      this.device = await navigator.bluetooth.requestDevice({
+      const device = await navigator.bluetooth.requestDevice({
         filters: [
-          { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }, // Common thermal printer service
+          { services: ["000018f0-0000-1000-8000-00805f9b34fb"] }, // Common thermal printer service
         ],
         optionalServices: [
-          '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Another common service UUID
-        ]
+          "49535343-fe7d-4ae5-8fa9-9fafd205e455", // Another common service UUID
+        ],
       });
 
-      if (!this.device.gatt) {
-        throw new Error('GATT not available');
-      }
-
-      // Connect to GATT server
-      const server = await this.device.gatt.connect();
-      
-      // Get service (try common service UUIDs)
-      let service;
-      try {
-        service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-      } catch {
-        service = await server.getPrimaryService('49535343-fe7d-4ae5-8fa9-9fafd205e455');
-      }
-
-      // Get characteristic
-      const characteristics = await service.getCharacteristics();
-      this.characteristic = characteristics.find(c => c.properties.write) || characteristics[0];
-
-      if (!this.characteristic) {
-        throw new Error('No writable characteristic found');
-      }
-
-      console.log('✅ Printer connected successfully');
+      await this.connectToDevice(device);
+      console.log("✅ Printer connected successfully");
     } catch (error) {
-      console.error('❌ Printer connection failed:', error);
-      throw new Error('Failed to connect to printer. Please ensure bluetooth is enabled and printer is powered on.');
+      console.error("❌ Printer connection failed:", error);
+      throw new Error(
+        "Failed to connect to printer. Please ensure bluetooth is enabled and printer is powered on.",
+      );
+    }
+  }
+
+  /**
+   * Connect to an already-known Bluetooth device (no picker UI).
+   *
+   * Note: This only works if the browser has previously granted permission
+   * to this device and it can be retrieved via navigator.bluetooth.getDevices().
+   */
+  async connectToDevice(device: BluetoothDevice): Promise<void> {
+    this.attachDevice(device);
+
+    if (!device.gatt) {
+      throw new Error("GATT not available");
+    }
+
+    const server = device.gatt.connected ? device.gatt : await device.gatt.connect();
+
+    // Get service (try common service UUIDs)
+    let service;
+    try {
+      service = await server.getPrimaryService("000018f0-0000-1000-8000-00805f9b34fb");
+    } catch {
+      service = await server.getPrimaryService("49535343-fe7d-4ae5-8fa9-9fafd205e455");
+    }
+
+    // Get characteristic
+    const characteristics = await service.getCharacteristics();
+    this.characteristic = characteristics.find((c) => c.properties.write) || characteristics[0];
+
+    if (!this.characteristic) {
+      throw new Error("No writable characteristic found");
     }
   }
 
@@ -156,11 +207,19 @@ export class BluetoothPrinter {
    * Disconnect from printer
    */
   async disconnect(): Promise<void> {
+    if (this.device) {
+      try {
+        this.device.removeEventListener("gattserverdisconnected", this.handleGattDisconnected);
+      } catch {
+        // ignore
+      }
+    }
+
     if (this.device?.gatt?.connected) {
       await this.device.gatt.disconnect();
-      this.device = null;
-      this.characteristic = null;
     }
+    this.device = null;
+    this.characteristic = null;
   }
 
   /**
@@ -231,6 +290,70 @@ export class BluetoothPrinter {
     const spacesNeeded = totalWidth - leftLen - rightLen;
     const spaces = spacesNeeded > 0 ? ' '.repeat(spacesNeeded) : ' ';
     return leftText + spaces + rightText;
+  }
+
+  private padLeft(text: string, width: number): string {
+    const printable = this.normalizeForPrinter(text);
+    if (printable.length >= width) return printable.slice(-width);
+    return ' '.repeat(width - printable.length) + printable;
+  }
+
+  private padRight(text: string, width: number): string {
+    const printable = this.normalizeForPrinter(text);
+    if (printable.length >= width) return printable.slice(0, width);
+    return printable + ' '.repeat(width - printable.length);
+  }
+
+  private wrapText(text: string, width: number): string[] {
+    const input = this.normalizeForPrinter(String(text ?? '')).trim();
+    if (!input) return [''];
+
+    const words = input.split(/\s+/);
+    const lines: string[] = [];
+    let line = '';
+
+    const pushLine = (l: string) => {
+      if (l.length > 0) lines.push(l);
+    };
+
+    for (const w of words) {
+      // If a single word is longer than width, hard-break it.
+      if (w.length > width) {
+        // flush current line
+        pushLine(line);
+        line = '';
+        for (let i = 0; i < w.length; i += width) {
+          lines.push(w.slice(i, i + width));
+        }
+        continue;
+      }
+
+      const next = line ? `${line} ${w}` : w;
+      if (next.length <= width) {
+        line = next;
+      } else {
+        pushLine(line);
+        line = w;
+      }
+    }
+
+    pushLine(line);
+    return lines.length ? lines : [''];
+  }
+
+  private getItemColumns() {
+    // IMPORTANT: widths must sum exactly to printer width to avoid auto-wrapping.
+    // total = nameW + qtyW + priceW + amountW + gap*3
+
+    // 80mm printers typically use 48 columns.
+    if (this.config.width === 48) {
+      // 48 = 23 + 4 + 9 + 9 + 1*3
+      return { nameW: 23, qtyW: 4, priceW: 9, amountW: 9, gap: 1 };
+    }
+
+    // 58mm printers typically use 32 columns.
+    // 32 = 14 + 3 + 6 + 6 + 1*3
+    return { nameW: 14, qtyW: 3, priceW: 6, amountW: 6, gap: 1 };
   }
 
   /**
@@ -559,23 +682,65 @@ export class BluetoothPrinter {
       
       await this.sendText(this.separator('-'));
       
-      // Items Header - Qty, Price, Amount format
+      // Items Header - Item | Qty | Price | Amount
+      // Ensure we're in a predictable text mode (some 58mm printers keep condensed/font state)
+      await this.sendData(ESCPOSCommands.ALIGN_LEFT);
+      await this.sendData(ESCPOSCommands.CANCEL_CONDENSED);
+      await this.sendData(ESCPOSCommands.FONT_A);
+      await this.sendData(ESCPOSCommands.NORMAL_SIZE);
+
+      const cols = this.getItemColumns();
       await this.sendData(ESCPOSCommands.BOLD_ON);
-      await this.sendText(this.padLine('Item', 'Qty. Price Amount'));
+      const header =
+        this.padRight('Item', cols.nameW) +
+        ' '.repeat(cols.gap) +
+        this.padLeft('Qty', cols.qtyW) +
+        ' '.repeat(cols.gap) +
+        this.padLeft('Price', cols.priceW) +
+        ' '.repeat(cols.gap) +
+        this.padLeft('Amount', cols.amountW) +
+        "\n";
+      await this.sendText(header);
       await this.sendData(ESCPOSCommands.BOLD_OFF);
       await this.sendText(this.separator('-'));
-      
-      // Items - Multi-line format like receipt
+
+      // Items - first line has columns, wrapped name continues on next line(s) under Item column only
       for (const item of billData.items) {
-        // Item name on first line
-        await this.sendText(`${item.name}\n`);
-        
-        // Quantity, price, and total on second line
-        const qtyPriceAmount = this.padLine(
-          '',
-          `${item.quantity} ${item.price.toFixed(2)} ${item.total.toFixed(2)}`
-        );
-        await this.sendText(qtyPriceAmount);
+        const nameLines = this.wrapText(item.name, cols.nameW);
+
+        const rightPart =
+          this.padLeft(String(item.quantity), cols.qtyW) +
+          ' '.repeat(cols.gap) +
+          this.padLeft(item.price.toFixed(2), cols.priceW) +
+          ' '.repeat(cols.gap) +
+          this.padLeft(item.total.toFixed(2), cols.amountW);
+
+        // First line (name + numbers)
+        const line1 =
+          this.padRight(nameLines[0] ?? '', cols.nameW) +
+          ' '.repeat(cols.gap) +
+          rightPart;
+
+        // Optional debug: verify we never exceed configured width
+        if (localStorage.getItem("qrave_printer_debug") === "1") {
+          console.log("[printer] item line1", { width: this.config.width, len: line1.length, line1 });
+        }
+
+        await this.sendText(line1 + "\r\n");
+
+        // Continuation lines (name only)
+        for (const cont of nameLines.slice(1)) {
+          const contLine = this.padRight(cont, cols.nameW);
+          if (localStorage.getItem("qrave_printer_debug") === "1") {
+            console.log("[printer] item cont", { width: this.config.width, len: contLine.length, contLine });
+          }
+          await this.sendText(contLine + "\r\n");
+        }
+
+        // Visual spacing between items (only needed when name wraps)
+        if (nameLines.length > 1) {
+          await this.sendText("\r\n");
+        }
       }
       
       await this.sendText(this.separator('-'));
@@ -616,6 +781,16 @@ export class BluetoothPrinter {
         await this.sendText(this.padLine(
           `GST ${gstRate.toFixed(1)}%`,
           this.formatMoney(billData.totals.gst, billData.currency)
+        ));
+      }
+
+      // Discount (if applicable)
+      // (Some backends store discount as negative; print as a negative line item)
+      const discountAbs = Math.abs(billData.totals.discount ?? 0);
+      if (discountAbs > 0) {
+        await this.sendText(this.padLine(
+          'Discount',
+          `-${this.formatMoney(discountAbs, billData.currency)}`
         ));
       }
       

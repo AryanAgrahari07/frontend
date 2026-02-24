@@ -14,10 +14,13 @@ import {
   Package,
   Menu,
   X,
+  Printer,
+  Loader2,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { useRestaurant } from "@/hooks/api";
+import { useThermalPrinter } from "@/hooks/useThermalPrinter";
 import { useState } from "react";
 
 const NAV_LINKS = [
@@ -39,6 +42,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { restaurantId, user, logout } = useAuth();
   const { data: restaurant } = useRestaurant(restaurantId);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const {
+    isConnected: isPrinterConnected,
+    isConnecting: isPrinterConnecting,
+    connect: connectPrinter,
+    disconnect: disconnectPrinter,
+  } = useThermalPrinter(32);
 
   const handleLogout = async () => {
     await logout();
@@ -101,6 +111,47 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               );
             })}
           </nav>
+
+          {/* Printer (global) */}
+          <div className="mt-6 px-2">
+            <div className="p-3 bg-muted/50 rounded-lg border border-border">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <Printer className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">Printer</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isPrinterConnected ? "Connected" : "Not connected"}
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant={isPrinterConnected ? "outline" : "default"}
+                  className="shrink-0"
+                  onClick={isPrinterConnected ? disconnectPrinter : connectPrinter}
+                  disabled={isPrinterConnecting}
+                >
+                  {isPrinterConnecting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isPrinterConnected ? (
+                    "Disconnect"
+                  ) : (
+                    "Pair"
+                  )}
+                </Button>
+              </div>
+
+              {!isPrinterConnected && (
+                <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                  Pair once, then keep this tab open to maintain the connection. (Refreshing will disconnect.)
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="p-4 border-t border-border">
@@ -179,6 +230,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               );
             })}
           </nav>
+
+          {/* Printer (global) */}
+          <div className="mt-6 px-2">
+            <div className="p-3 bg-muted/50 rounded-lg border border-border">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <Printer className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">Printer</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isPrinterConnected ? "Connected" : "Not connected"}
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant={isPrinterConnected ? "outline" : "default"}
+                  className="shrink-0"
+                  onClick={() => {
+                    if (isPrinterConnected) disconnectPrinter();
+                    else connectPrinter();
+                  }}
+                  disabled={isPrinterConnecting}
+                >
+                  {isPrinterConnecting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isPrinterConnected ? (
+                    "Disconnect"
+                  ) : (
+                    "Pair"
+                  )}
+                </Button>
+              </div>
+
+              {!isPrinterConnected && (
+                <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                  Pair once, then keep this tab open to maintain the connection. (Refreshing will disconnect.)
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="p-4 border-t border-border">

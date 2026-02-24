@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
-import { Search, Calendar, FileText, Download, Eye, Receipt, CreditCard, Utensils, Clock, Printer, Share2, Loader2, ChevronLeft, ChevronRight, Filter, ChevronsLeft, ChevronsRight, Bluetooth, MessageCircle, Send, MinusCircle } from "lucide-react";
+import { Search, Calendar, FileText, Download, Eye, Receipt, CreditCard, Utensils, Clock, Printer, Share2, Loader2, ChevronLeft, ChevronRight, Filter, ChevronsLeft, ChevronsRight, MessageCircle, Send, MinusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -89,13 +89,9 @@ export default function TransactionsPage() {
   // Thermal Printer
   const {
     isConnected: isPrinterConnected,
-    isConnecting: isPrinterConnecting,
     isPrinting,
-    connect: connectPrinter,
-    disconnect: disconnectPrinter,
     printBill: printThermalBill,
-    testPrint,
-  } = useThermalPrinter(32); // 32 chars for 58mm, 48 for 80mm
+  } = useThermalPrinter(32); // connection handled globally (Dashboard sidebar)
   
   // WhatsApp Sharing
   const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
@@ -416,7 +412,7 @@ const prepareBillData = (): BillData | null => {
       cgst: parseFloat(transactionDetail.gstAmount) / 2,
       sgst: parseFloat(transactionDetail.gstAmount) / 2,
       serviceCharge: parseFloat(transactionDetail.serviceTaxAmount),
-      discount: parseFloat(transactionDetail.discountAmount || '0'),
+      discount: Math.abs(parseFloat((transactionDetail.discountAmount || '0').replace(/,/g, '')) || 0),
       roundOff: parseFloat(transactionDetail.roundOff || '0'),
       grandTotal: parseFloat(transactionDetail.grandTotal),
     },
@@ -699,17 +695,17 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
                 </Button>
 
                 <Button
-                  variant={isPrinterConnected ? "default" : "outline"}
                   className="flex-1 min-w-0 gap-2 h-9 sm:h-10 text-sm"
                   onClick={handleThermalPrint}
                   disabled={isPrinting || !isPrinterConnected}
+                  title={!isPrinterConnected ? "Pair/connect printer from the sidebar first" : undefined}
                 >
                   {isPrinting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Printer className="w-4 h-4" />
                   )}
-                  <span className="truncate">{isPrinterConnected ? 'Print Bill' : 'Connect Printer'}</span>
+                  <span className="truncate">Print Bill</span>
                 </Button>
 
                 <Button
@@ -755,26 +751,6 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          {/* Thermal Printer Connection Button */}
-          <Button 
-            variant={isPrinterConnected ? "default" : "outline"}
-            className="gap-2 flex-1 sm:flex-initial h-9 sm:h-10"
-            onClick={isPrinterConnected ? disconnectPrinter : connectPrinter}
-            disabled={isPrinterConnecting}
-          >
-            {isPrinterConnecting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Bluetooth className="w-4 h-4" />
-            )}
-            <span className="hidden sm:inline">
-              {isPrinterConnected ? 'Printer Connected' : 'Connect Printer'}
-            </span>
-            <span className="sm:hidden">
-              {isPrinterConnected ? 'Connected' : 'Printer'}
-            </span>
-          </Button>
-          
           <Button 
             variant="outline" 
             className="gap-2 flex-1 sm:flex-initial h-9 sm:h-10"
@@ -791,29 +767,6 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
           </Button>
         </div>
       </div>
-
-      {/* Printer Status Banner */}
-      {isPrinterConnected && (
-        <Card className="mb-4 border-green-200 bg-green-50">
-          <CardContent className="p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-green-700">
-                Thermal printer connected and ready
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={testPrint}
-              disabled={isPrinting}
-              className="h-7 text-xs"
-            >
-              Test Print
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="grid gap-4 sm:gap-6">
         <Card>

@@ -54,6 +54,7 @@ import {
   useCloseOrder,
   useUpdateOrder,
   useRemoveOrderServiceCharge,
+  useRestaurantLogo,
 } from "@/hooks/api";
 import type { Order, MenuItem, OrderStatus, PaymentMethod } from "@/types";
 import type { POSCartLineItem } from "@/types/pos";
@@ -75,10 +76,19 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { MobilePOS } from "@/components/pos/mobilepos";
 import { DesktopPOS } from "@/components/pos/desktoppos";
+import { useThermalPrinter } from "@/hooks/useThermalPrinter";
+import { buildBillDataFromOrder } from "@/lib/bill-data";
 
 export default function LiveOrdersPage() {
   const { restaurantId, user } = useAuth();
   const { data: restaurant } = useRestaurant(restaurantId);
+  const { data: restaurantLogo } = useRestaurantLogo(restaurantId);
+
+  const {
+    isConnected: isPrinterConnected,
+    isPrinting,
+    printBill: printThermalBill,
+  } = useThermalPrinter(32);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -465,6 +475,30 @@ export default function LiveOrdersPage() {
       case "DUE":
       default:
         return <XCircle className="w-3 h-3" />;
+    }
+  };
+
+  const handleThermalPrint = async () => {
+    if (!selectedOrder || !restaurant) {
+      toast.error("Bill data not available");
+      return;
+    }
+
+    if (!isPrinterConnected) {
+      toast.error("Printer not connected. Please connect your thermal printer first.");
+      return;
+    }
+
+    try {
+      const billData = buildBillDataFromOrder({
+        order: selectedOrder,
+        restaurant,
+        currency,
+        restaurantLogo,
+      });
+      await printThermalBill(billData);
+    } catch (error) {
+      console.error("Thermal print error:", error);
     }
   };
 
@@ -1458,11 +1492,15 @@ export default function LiveOrdersPage() {
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => {
-                      toast.success("Print functionality will be implemented soon!");
-                    }}
+                    onClick={handleThermalPrint}
+                    disabled={isPrinting || !isPrinterConnected}
+                    title={!isPrinterConnected ? "Pair/connect printer from the sidebar first" : undefined}
                   >
-                    <Printer className="w-4 h-4 mr-2" />
+                    {isPrinting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Printer className="w-4 h-4 mr-2" />
+                    )}
                     Print Bill
                   </Button>
                 </div>

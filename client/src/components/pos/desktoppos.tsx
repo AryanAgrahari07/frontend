@@ -749,17 +749,17 @@ export function DesktopPOS({
                                       : "border-red-600 bg-white relative after:content-[''] after:absolute after:inset-[2px] after:bg-red-600 after:rounded-full"
                                   )}
                                 />
-                                <div className="flex flex-col min-w-0">
-                                  <span className="font-semibold text-gray-900 text-[10px] md:text-[11px] truncate leading-tight">
+                                <div className="flex flex-col min-w-0 flex-1">
+                                  <span className="font-semibold text-gray-900 text-[10px] md:text-[11px] truncate block max-w-full leading-tight">
                                     {item.name}
                                   </span>
                                   {selectedVariant && (
-                                    <span className="text-[8px] md:text-[9px] text-blue-600 truncate leading-tight">
+                                    <span className="text-[8px] md:text-[9px] text-blue-600 truncate block max-w-full leading-tight">
                                       {selectedVariant.variantName}
                                     </span>
                                   )}
                                   {selectedModifiers.length > 0 && (
-                                    <span className="text-[8px] md:text-[9px] text-amber-600 truncate leading-tight">
+                                    <span className="text-[8px] md:text-[9px] text-amber-600 truncate block max-w-full leading-tight">
                                       + {selectedModifiers.map((m) => m.name).join(", ")}
                                     </span>
                                   )}
