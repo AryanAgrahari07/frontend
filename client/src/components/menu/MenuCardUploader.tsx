@@ -43,7 +43,7 @@ export function MenuCardUploader({ restaurantId, onExtractionComplete }: MenuCar
       toast.error(
         `Unsupported format. Please use ${FORMAT_NAMES}.`,
         {
-          description: file.type === 'image/avif' 
+          description: file.type === 'image/avif'
             ? 'AVIF format is not supported. Please convert to JPG or PNG.'
             : 'This image format is not supported.'
         }
@@ -75,7 +75,7 @@ export function MenuCardUploader({ restaurantId, onExtractionComplete }: MenuCar
       });
 
       if (!urlResponse.ok) throw new Error("Failed to get upload URL");
-      
+
       const { jobId, uploadUrl, publicUrl, key }: UploadUrlResponse = await urlResponse.json();
       setUploadProgress(20);
 
@@ -102,12 +102,12 @@ export function MenuCardUploader({ restaurantId, onExtractionComplete }: MenuCar
       });
 
       if (!jobResponse.ok) throw new Error("Failed to create job");
-      
+
       const { job }: ExtractionJobResponse = await jobResponse.json();
       setUploadProgress(100);
 
       toast.success("🎉 Image uploaded! AI is analyzing your menu...");
-      
+
       setTimeout(() => {
         setIsOpen(false);
         onExtractionComplete(job.id);
@@ -126,26 +126,27 @@ export function MenuCardUploader({ restaurantId, onExtractionComplete }: MenuCar
 
   return (
     <>
-      <Button 
+      <Button
         onClick={() => setIsOpen(true)}
-        className="gap-2 bg-gradient-to-r from-primary to-pink-600 hover:from-primary/90 hover:to-pink-600/90"
+        className="gap-2 bg-gradient-to-r from-primary to-pink-600 hover:from-primary/90 hover:to-pink-600/90 text-xs sm:text-sm h-8 sm:h-9"
       >
-        <Sparkles className="w-4 h-4" />
-        AI Menu Extract
+        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        <span className="hidden sm:inline">AI Menu Extract</span>
+        <span className="sm:hidden">Extract</span>
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              Upload Menu Card Image
+        <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-full mx-auto max-h-[90vh] overflow-y-auto px-4 py-4 sm:p-6 transition-all duration-200">
+          <DialogHeader className="pr-6 sm:pr-0">
+            <DialogTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
+              <span className="truncate">Upload Menu Image</span>
             </DialogTitle>
           </DialogHeader>
 
           {!isUploading ? (
-            <div className="space-y-4 py-4">
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center hover:border-primary/50 transition-colors">
+            <div className="space-y-3 sm:space-y-4 py-2 sm:py-4">
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 sm:p-8 text-center hover:border-primary/50 transition-colors">
                 <input
                   type="file"
                   accept={SUPPORTED_FORMATS.join(',')}
@@ -153,33 +154,33 @@ export function MenuCardUploader({ restaurantId, onExtractionComplete }: MenuCar
                   className="hidden"
                   id="menu-upload"
                 />
-                <label htmlFor="menu-upload" className="cursor-pointer">
-                  <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg font-medium mb-2">
+                <label htmlFor="menu-upload" className="cursor-pointer flex flex-col items-center justify-center">
+                  <Upload className="w-8 h-8 sm:w-12 sm:h-12 mb-2 sm:mb-4 text-muted-foreground" />
+                  <p className="text-sm sm:text-base font-medium mb-1 sm:mb-2">
                     Choose menu card image
                   </p>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-3 sm:mb-4">
                     {FORMAT_NAMES} • Max 10MB
                   </p>
-                  <Button type="button" variant="outline" size="sm">
+                  <Button type="button" variant="outline" size="sm" className="h-8 text-xs sm:text-sm px-4">
                     Browse Files
                   </Button>
                 </label>
               </div>
 
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-sm">
-                  <strong>Note:</strong> AVIF format is not supported. Please use JPG, PNG, or WebP instead.
+              <Alert className="p-2 sm:p-4">
+                <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <AlertDescription className="text-[10px] sm:text-sm mt-0.5 sm:mt-0 leading-tight">
+                  <strong>Note:</strong> AVIF format is not supported. Use JPG/PNG/WebP.
                 </AlertDescription>
               </Alert>
 
-              <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
-                <p className="font-semibold flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
+              <div className="bg-muted/50 rounded-lg p-3 sm:p-4 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                <p className="font-semibold flex items-center gap-1.5 sm:gap-2">
+                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   AI will extract:
                 </p>
-                <ul className="space-y-1 text-muted-foreground pl-6">
+                <ul className="space-y-1 text-muted-foreground pl-5 sm:pl-6 text-[10px] sm:text-sm">
                   <li>✓ All menu items with prices</li>
                   <li>✓ Categories and descriptions</li>
                   <li>✓ Dietary types (Veg/Non-Veg)</li>
@@ -191,19 +192,19 @@ export function MenuCardUploader({ restaurantId, onExtractionComplete }: MenuCar
             <div className="py-8 space-y-6">
               {preview && (
                 <div className="relative w-full h-48 rounded-lg overflow-hidden border">
-                  <img 
-                    src={preview} 
-                    alt="Menu preview" 
+                  <img
+                    src={preview}
+                    alt="Menu preview"
                     className="w-full h-full object-contain"
                   />
                 </div>
               )}
-              
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">
-                    {uploadProgress < 50 ? '📤 Uploading...' : 
-                     uploadProgress < 100 ? '🤖 AI Analyzing...' : '✅ Complete!'}
+                    {uploadProgress < 50 ? '📤 Uploading...' :
+                      uploadProgress < 100 ? '🤖 AI Analyzing...' : '✅ Complete!'}
                   </span>
                   <span className="text-muted-foreground">{uploadProgress}%</span>
                 </div>

@@ -264,668 +264,668 @@ export function DesktopPOS({
           </AlertDialog>
 
           <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
-          {/* Main Content Area */}
-          <div className="flex flex-1 overflow-hidden min-h-0">
-            {/* Left Side - Category & Items */}
-            <div className="flex-[1_1_60%] flex flex-col overflow-hidden bg-white min-w-0 max-w-[60%]">
-              {/* Category Bar with Search */}
-              <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-3 flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-min pb-1">
-                      {!isSearchOpen && categories?.map((category) => (
-                        <button
-                          key={category.id}
-                          onClick={() => {
-                            onCategoryChange(category.id);
-                            onSearchQueryChange("");
-                          }}
-                          className={cn(
-                            "px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-[11px] sm:text-xs whitespace-nowrap transition-all flex-shrink-0",
-                            activeCategory === category.id && !searchQuery
-                              ? "bg-primary text-white shadow-md"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          )}
-                        >
-                          {category.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {!isSearchOpen ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onSearchOpenChange(true)}
-                      className="flex-shrink-0 h-8 sm:h-9 px-2 sm:px-3"
-                    >
-                      <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </Button>
-                  ) : (
-                    <div className="flex items-center gap-2 flex-1 max-w-xs">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                        <Input
-                          type="text"
-                          placeholder="Search items..."
-                          value={searchQuery}
-                          onChange={(e) => onSearchQueryChange(e.target.value)}
-                          className="h-8 sm:h-9 pl-8 pr-2 text-xs sm:text-sm"
-                          autoFocus
-                        />
+            {/* Main Content Area */}
+            <div className="flex flex-1 overflow-hidden min-h-0">
+              {/* Left Side - Category & Items */}
+              <div className="flex-[1_1_60%] flex flex-col overflow-hidden bg-white min-w-0 max-w-[60%]">
+                {/* Category Bar with Search */}
+                <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-3 flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-min pb-1">
+                        {!isSearchOpen && categories?.map((category) => (
+                          <button
+                            key={category.id}
+                            onClick={() => {
+                              onCategoryChange(category.id);
+                              onSearchQueryChange("");
+                            }}
+                            className={cn(
+                              "px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium text-[11px] sm:text-xs whitespace-nowrap transition-all flex-shrink-0",
+                              activeCategory === category.id && !searchQuery
+                                ? "bg-primary text-white shadow-md"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            )}
+                          >
+                            {category.name}
+                          </button>
+                        ))}
                       </div>
+                    </div>
+
+                    {!isSearchOpen ? (
                       <Button
                         size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          onSearchOpenChange(false);
-                          onSearchQueryChange("");
-                        }}
-                        className="flex-shrink-0 h-8 sm:h-9 px-2"
+                        variant="outline"
+                        onClick={() => onSearchOpenChange(true)}
+                        className="flex-shrink-0 h-8 sm:h-9 px-2 sm:px-3"
                       >
-                        <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Items Grid */}
-              <ScrollArea className="flex-1 min-h-0">
-                <div className="p-2 sm:p-3 md:p-4">
-                  {searchQuery && (
-                    <div className="mb-3 text-xs text-gray-600">
-                      Found {filteredItems.length} item(s) for "{searchQuery}"
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
-                    {filteredItems.map((item: MenuItem) => {
-                      const quantity = getMenuItemQuantity(item.id);
-                      const isAdded = quantity > 0;
-                      const isVeg = item.dietaryTags?.some(
-                        (tag) => tag.toLowerCase() === "veg"
-                      );
-
-                      return (
-                        <div
-                          key={item.id}
-                          className={cn(
-                            "bg-white rounded-xl p-2.5 sm:p-3 hover:shadow-md transition-all flex flex-col",
-                            isAdded 
-                              ? "border-2 border-primary shadow-md ring-2 ring-primary/20" 
-                              : "border-2 border-gray-200 hover:border-primary/30"
-                          )}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <h3 className="font-semibold text-gray-900 flex-1 text-xs sm:text-sm line-clamp-2 leading-tight">
-                              {item.name}
-                            </h3>
-                            <div
-                              className={cn(
-                                "size-2.5 sm:size-3 rounded-sm border-2 flex-shrink-0 mt-0.5 ml-1.5",
-                                isVeg 
-                                  ? "border-green-600 bg-white relative after:content-[''] after:absolute after:inset-[3px] after:bg-green-600 after:rounded-full" 
-                                  : "border-red-600 bg-white relative after:content-[''] after:absolute after:inset-[3px] after:bg-red-600 after:rounded-full"
-                              )}
-                            />
-                          </div>
-                          
-                          <div className="mt-auto space-y-2">
-                            <span className="text-sm sm:text-base font-bold text-gray-900 block">
-                              {currency}{item.price}
-                            </span>
-                            {((item.variants?.length || 0) > 0 || (item.modifierGroups?.length || 0) > 0) && (
-                              <span className="text-[10px] text-muted-foreground font-semibold">Customizable</span>
-                            )}
-                            
-                            {!isAdded ? (
-                              <Button
-                                onClick={() => onAddToManualCart(item)}
-                                size="sm"
-                                className="bg-primary hover:bg-primary/90 text-white h-8 w-full rounded-md font-semibold"
-                              >
-                                <Plus className="size-4 mr-1" />
-                                Add
-                              </Button>
-                            ) : (
-                              <div className="flex items-center justify-center gap-2 bg-primary/10 rounded-md border-2 border-primary/30 p-1">
-                                <Button
-                                  onClick={() => {
-                                    const lines = manualCart.filter((li) => li.menuItemId === item.id);
-                                    const line = lines[lines.length - 1];
-                                    if (line) onDecrementLineItem(line.lineId);
-                                  }}
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 w-7 p-0 hover:bg-primary/20 rounded-md"
-                                >
-                                  <Minus className="size-4 text-primary" />
-                                </Button>
-                                <span className="font-bold text-gray-900 min-w-[1.5rem] text-center text-sm">
-                                  {quantity}
-                                </span>
-                                <Button
-                                  onClick={() => {
-                                    const isCustomizable =
-                                      (item.variants && item.variants.length > 0) ||
-                                      (item.modifierGroups && item.modifierGroups.length > 0);
-
-                                    if (isCustomizable) {
-                                      setRepeatDialogItem(item);
-                                      setRepeatDialogOpen(true);
-                                      return;
-                                    }
-
-                                    const lines = manualCart.filter((li) => li.menuItemId === item.id);
-                                    const line = lines[lines.length - 1];
-                                    if (line) onIncrementLineItem(line.lineId);
-                                    else onAddToManualCart(item);
-                                  }}
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 w-7 p-0 hover:bg-primary/20 rounded-md"
-                                >
-                                  <Plus className="size-4 text-primary" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {filteredItems.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                      <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">No items found</p>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-
-              {/* Action Buttons */}
-              <div className="bg-white border-t border-gray-200 p-2 sm:p-3 flex-shrink-0">
-                <div className="flex items-center justify-end gap-1.5 sm:gap-2">
-                  {!isWaiterMode && (
-                  <Button
-                    onClick={onSave!}
-                    variant="outline"
-                    disabled={manualCart.length === 0}
-                    size="sm"
-                    className="hover:bg-gray-100 text-[11px] sm:text-xs h-8 sm:h-9"
-                  >
-                    <Save className="size-3 sm:size-3.5 sm:mr-1.5" />
-                    <span className="hidden sm:inline">Save</span>
-                  </Button>
-                  )}
-                  {!isWaiterMode && (
-                  <Button
-                    onClick={onSaveAndPrint!}
-                    variant="outline"
-                    disabled={manualCart.length === 0}
-                    size="sm"
-                    className="hover:bg-gray-100 text-[11px] sm:text-xs h-8 sm:h-9"
-                  >
-                    <Printer className="size-3 sm:size-3.5 sm:mr-1.5" />
-                    <span className="hidden sm:inline">Print</span>
-                  </Button>
-                  )}
-                  <Button
-                    onClick={onSendToKitchen}
-                    disabled={manualCart.length === 0 || isLoading}
-                    size="sm"
-                    className="bg-primary hover:bg-primary/90 text-white px-3 sm:px-6 text-[11px] sm:text-xs h-8 sm:h-9"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="size-3 sm:size-3.5 sm:mr-1.5 animate-spin" />
                     ) : (
-                      <ChefHat className="size-3 sm:size-3.5 sm:mr-1.5" />
-                    )}
-                    <span className="hidden sm:inline">Kitchen</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Side - Order Summary */}
-            <div className="flex-[1_1_40%] min-w-[280px] max-w-[40%] bg-gray-50 border-l border-gray-200 flex flex-col h-full overflow-hidden">
-              {/* Header */}
-              <div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
-                <h2 className="text-sm sm:text-base font-bold text-gray-900 mb-3">
-                  Order Summary
-                </h2>
-
-                <div
-                  className={cn(
-                    "grid gap-2 items-end",
-                    isWaiterMode ? "grid-cols-[1fr_auto]" : "grid-cols-[1fr_1fr_1fr_auto]",
-                  )}
-                >
-                  {/* Table */}
-                  {!hideTableSelect && (
-                  <div className="space-y-1 min-w-0">
-                    <Label className="text-[10px] text-gray-600 font-medium flex items-center gap-1">
-                      <UtensilsCrossed className="size-3" />
-                      Table
-                    </Label>
-                    <Select value={selectedTableId} onValueChange={onTableChange}>
-                      <SelectTrigger className="h-8 text-[11px] border-2 focus:border-primary px-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {tables?.filter((t: Table) =>
-                          t.currentStatus === "OCCUPIED" || t.currentStatus === "AVAILABLE"
-                        ).map((table: Table) => (
-                          <SelectItem key={table.id} value={table.id}>
-                            T{table.tableNumber}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  )}
-
-                  {/* Waiter */}
-                  {!isWaiterMode && (
-                  <div className="space-y-1 min-w-0">
-                    <Label className="text-[10px] text-gray-600 font-medium flex items-center gap-1">
-                      <Users className="size-3" />
-                      Waiter
-                    </Label>
-                    <Select value={selectedWaiterId || "none"} onValueChange={onWaiterChange}>
-                      <SelectTrigger className="h-8 text-[11px] border-2 focus:border-primary px-2">
-                        <SelectValue placeholder="None" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {staff
-                          ?.filter((s: any) => s.role === "WAITER" && s.isActive)
-                          .map((waiter: any) => (
-                            <SelectItem key={waiter.id} value={waiter.id}>
-                              {waiter.fullName.split(" ")[0]}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  )}
-
-                  {/* Type */}
-                  {!hideOrderTypeSelect && !isWaiterMode && (
-                  <div className="space-y-1 min-w-0">
-                    <Label className="text-[10px] text-gray-600 font-medium flex items-center gap-1">
-                      <Utensils className="size-3" />
-                      Type
-                    </Label>
-                    <Select value={orderMethod} onValueChange={onOrderMethodChange}>
-                      <SelectTrigger className="h-8 text-[11px] border-2 focus:border-primary px-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="dine-in">Dine</SelectItem>
-                        <SelectItem value="takeaway">Take</SelectItem>
-                        <SelectItem value="delivery">Delv</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  )}
-
-                  {/* Options */}
-                  <div className="flex flex-col items-end justify-end gap-1 pb-[4px]">
-                    <div className="flex items-end justify-end gap-2">
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[9px] text-gray-600 font-medium">Note</span>
+                      <div className="flex items-center gap-2 flex-1 max-w-xs">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                          <Input
+                            type="text"
+                            placeholder="Search items..."
+                            value={searchQuery}
+                            onChange={(e) => onSearchQueryChange(e.target.value)}
+                            className="h-8 sm:h-9 pl-8 pr-2 text-xs sm:text-sm"
+                            autoFocus
+                          />
+                        </div>
                         <Button
-                      type="button"
-                      variant={cookingNote.trim() ? "default" : "outline"}
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => setNoteDialogOpen(true)}
-                      title="Cooking note"
-                    >
-                      <StickyNote className="h-3.5 w-3.5" />
-                    </Button>
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            onSearchOpenChange(false);
+                            onSearchQueryChange("");
+                          }}
+                          className="flex-shrink-0 h-8 sm:h-9 px-2"
+                        >
+                          <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </Button>
                       </div>
-
-                      {!isWaiterMode && showDiscount && (
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-[9px] text-gray-600 font-medium">Disc</span>
-                          <Button
-                            type="button"
-                            variant={discountAmount.trim() ? "default" : "outline"}
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => setDiscountDialogOpen(true)}
-                            title="Discount"
-                          >
-                            <Percent className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
-
-                  {/* Dialogs */}
-                  <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Cooking Note</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-2">
-                        <Label>Note (optional)</Label>
-                        <Input
-                          value={cookingNote}
-                          onChange={(e) => onCookingNoteChange?.(e.target.value)}
-                          placeholder="E.g. less spicy, no onions"
-                        />
-                        <div className="flex justify-end">
-                          <Button type="button" onClick={() => setNoteDialogOpen(false)}>
-                            Done
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  <Dialog open={discountDialogOpen} onOpenChange={setDiscountDialogOpen}>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Discount</DialogTitle>
-                      </DialogHeader>
-
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>Discount Type</Label>
-                          <RadioGroup
-                            value={discountMode}
-                            onValueChange={(v) => setDiscountMode(v as "amount" | "percent")}
-                            className="flex gap-4"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="amount" id="disc_amount" />
-                              <Label htmlFor="disc_amount">Amount</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="percent" id="disc_percent" />
-                              <Label htmlFor="disc_percent">Percent</Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
-
-                        {discountMode === "amount" ? (
-                          <div className="space-y-2">
-                            <Label>Discount Amount (optional)</Label>
-                            <Input
-                              value={discountAmount}
-                              onChange={(e) => onDiscountAmountChange?.(e.target.value)}
-                              placeholder="0"
-                              inputMode="decimal"
-                            />
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <Label>Discount Percent (optional)</Label>
-                            <Input
-                              value={discountPercent}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setDiscountPercent(v);
-                                const pct = Math.max(0, Math.min(100, parseFloat(v || "0") || 0));
-                                const amt = (totalBeforeDiscount * pct) / 100;
-                                onDiscountAmountChange?.(amt ? amt.toFixed(2) : "");
-                              }}
-                              placeholder="0"
-                              inputMode="decimal"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Applies on total ({currency}{totalBeforeDiscount.toFixed(2)}). Amount: {currency}
-                              {(((totalBeforeDiscount * (parseFloat(discountPercent || "0") || 0)) / 100) || 0).toFixed(2)}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="flex justify-between gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                              setDiscountPercent("");
-                              onDiscountAmountChange?.("");
-                            }}
-                          >
-                            Clear
-                          </Button>
-                          <Button type="button" onClick={() => setDiscountDialogOpen(false)}>
-                            Done
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
                 </div>
-              </div>
 
-              {/* Order Items */}
-              <ScrollArea className="flex-1 min-h-0">
-                <div className="p-2 md:p-3">
-                  <h3 className="font-semibold text-gray-900 mb-1.5 text-[11px] md:text-xs">
-                    Items ({manualCart.length})
-                  </h3>
-                  {manualCart.length === 0 ? (
-                    <p className="text-gray-500 text-[10px] text-center py-6">
-                      No items added
-                    </p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {manualCart.map((item, idx) => {
-                        const menuItem = menuItems?.find(
-                          (mi) => mi.id === item.menuItemId
+                {/* Items Grid */}
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="p-2 sm:p-3 md:p-4">
+                    {searchQuery && (
+                      <div className="mb-3 text-xs text-gray-600">
+                        Found {filteredItems.length} item(s) for "{searchQuery}"
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
+                      {filteredItems.map((item: MenuItem) => {
+                        const quantity = getMenuItemQuantity(item.id);
+                        const isAdded = quantity > 0;
+                        const isVeg = item.dietaryTags?.some(
+                          (tag) => tag.toLowerCase() === "veg"
                         );
-                        const selectedVariant = menuItem?.variants?.find(
-                          (v) => v.id === item.variantId
-                        );
-                        const selectedModifiers =
-                          menuItem?.modifierGroups?.flatMap(
-                            (g) =>
-                              g.modifiers?.filter((m) =>
-                                item.modifierIds?.includes(m.id)
-                              ) || []
-                          ) || [];
 
                         return (
                           <div
-                            key={idx}
-                            className="bg-white rounded-md border border-gray-200 p-1.5 md:p-2"
+                            key={item.id}
+                            className={cn(
+                              "bg-white rounded-xl p-2.5 sm:p-3 hover:shadow-md transition-all flex flex-col",
+                              isAdded
+                                ? "border-2 border-primary shadow-md ring-2 ring-primary/20"
+                                : "border-2 border-gray-200 hover:border-primary/30"
+                            )}
                           >
-                            <div className="flex items-center justify-between gap-1.5">
-                              <div className="flex items-center gap-1 flex-1 min-w-0">
-                                <div
-                                  className={cn(
-                                    "size-2 md:size-2.5 rounded-sm border flex-shrink-0",
-                                    item.isVeg 
-                                      ? "border-green-600 bg-white relative after:content-[''] after:absolute after:inset-[2px] after:bg-green-600 after:rounded-full" 
-                                      : "border-red-600 bg-white relative after:content-[''] after:absolute after:inset-[2px] after:bg-red-600 after:rounded-full"
-                                  )}
-                                />
-                                <div className="flex flex-col min-w-0 flex-1">
-                                  <span className="font-semibold text-gray-900 text-[10px] md:text-[11px] truncate block max-w-full leading-tight">
-                                    {item.name}
-                                  </span>
-                                  {selectedVariant && (
-                                    <span className="text-[8px] md:text-[9px] text-blue-600 truncate block max-w-full leading-tight">
-                                      {selectedVariant.variantName}
-                                    </span>
-                                  )}
-                                  {selectedModifiers.length > 0 && (
-                                    <span className="text-[8px] md:text-[9px] text-amber-600 truncate block max-w-full leading-tight">
-                                      + {selectedModifiers.map((m) => m.name).join(", ")}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5">
+                            <div className="flex items-start justify-between mb-2">
+                              <h3 className="font-semibold text-gray-900 flex-1 text-xs sm:text-sm line-clamp-2 leading-tight">
+                                {item.name}
+                              </h3>
+                              <div
+                                className={cn(
+                                  "size-2.5 sm:size-3 rounded-sm border-2 flex-shrink-0 mt-0.5 ml-1.5",
+                                  isVeg
+                                    ? "border-green-600 bg-white relative after:content-[''] after:absolute after:inset-[3px] after:bg-green-600 after:rounded-full"
+                                    : "border-red-600 bg-white relative after:content-[''] after:absolute after:inset-[3px] after:bg-red-600 after:rounded-full"
+                                )}
+                              />
+                            </div>
+
+                            <div className="mt-auto space-y-2">
+                              <span className="text-sm sm:text-base font-bold text-gray-900 block">
+                                {currency}{item.price}
+                              </span>
+                              {((item.variants?.length || 0) > 0 || (item.modifierGroups?.length || 0) > 0) && (
+                                <span className="text-[10px] text-muted-foreground font-semibold">Customizable</span>
+                              )}
+
+                              {!isAdded ? (
+                                <Button
+                                  onClick={() => onAddToManualCart(item)}
+                                  size="sm"
+                                  className="bg-primary hover:bg-primary/90 text-white h-8 w-full rounded-md font-semibold"
+                                >
+                                  <Plus className="size-4 mr-1" />
+                                  Add
+                                </Button>
+                              ) : (
+                                <div className="flex items-center justify-center gap-2 bg-primary/10 rounded-md border-2 border-primary/30 p-1">
                                   <Button
-                                    onClick={() => onDecrementLineItem(item.lineId)}
+                                    onClick={() => {
+                                      const lines = manualCart.filter((li) => li.menuItemId === item.id);
+                                      const line = lines[lines.length - 1];
+                                      if (line) onDecrementLineItem(line.lineId);
+                                    }}
                                     size="sm"
                                     variant="ghost"
-                                    className="h-5 w-5 md:h-6 md:w-6 p-0 hover:bg-gray-200"
+                                    className="h-7 w-7 p-0 hover:bg-primary/20 rounded-md"
                                   >
-                                    <Minus className="size-2 md:size-2.5" />
+                                    <Minus className="size-4 text-primary" />
                                   </Button>
-                                  <span className="font-bold text-[9px] md:text-[10px] min-w-[0.75rem] text-center px-0.5">
-                                    {item.quantity}
+                                  <span className="font-bold text-gray-900 min-w-[1.5rem] text-center text-sm">
+                                    {quantity}
                                   </span>
                                   <Button
-                                    onClick={() => onIncrementLineItem(item.lineId)}
+                                    onClick={() => {
+                                      const isCustomizable =
+                                        (item.variants && item.variants.length > 0) ||
+                                        (item.modifierGroups && item.modifierGroups.length > 0);
+
+                                      if (isCustomizable) {
+                                        setRepeatDialogItem(item);
+                                        setRepeatDialogOpen(true);
+                                        return;
+                                      }
+
+                                      const lines = manualCart.filter((li) => li.menuItemId === item.id);
+                                      const line = lines[lines.length - 1];
+                                      if (line) onIncrementLineItem(line.lineId);
+                                      else onAddToManualCart(item);
+                                    }}
                                     size="sm"
                                     variant="ghost"
-                                    className="h-5 w-5 md:h-6 md:w-6 p-0 hover:bg-gray-200"
+                                    className="h-7 w-7 p-0 hover:bg-primary/20 rounded-md"
                                   >
-                                    <Plus className="size-2 md:size-2.5" />
+                                    <Plus className="size-4 text-primary" />
                                   </Button>
                                 </div>
-                                <span className="font-bold text-gray-900 min-w-[2.5rem] md:min-w-[3rem] text-right text-[9px] md:text-[10px]">
-                                  {currency}{(item.unitPrice * item.quantity).toFixed(2)}
-                                </span>
-                              </div>
+                              )}
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                  )}
+                    {filteredItems.length === 0 && (
+                      <div className="text-center py-12 text-gray-500">
+                        <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm">No items found</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+
+                {/* Action Buttons */}
+                <div className="bg-white border-t border-gray-200 p-2 sm:p-3 flex-shrink-0">
+                  <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+                    {!isWaiterMode && (
+                      <Button
+                        onClick={onSave!}
+                        variant="outline"
+                        disabled={manualCart.length === 0}
+                        size="sm"
+                        className="hover:bg-gray-100 text-[11px] sm:text-xs h-8 sm:h-9"
+                      >
+                        <Save className="size-3 sm:size-3.5 sm:mr-1.5" />
+                        <span className="hidden sm:inline">Save</span>
+                      </Button>
+                    )}
+                    {!isWaiterMode && (
+                      <Button
+                        onClick={onSaveAndPrint!}
+                        variant="outline"
+                        disabled={manualCart.length === 0}
+                        size="sm"
+                        className="hover:bg-gray-100 text-[11px] sm:text-xs h-8 sm:h-9"
+                      >
+                        <Printer className="size-3 sm:size-3.5 sm:mr-1.5" />
+                        <span className="hidden sm:inline">Print</span>
+                      </Button>
+                    )}
+                    <Button
+                      onClick={onSendToKitchen}
+                      disabled={manualCart.length === 0 || isLoading}
+                      size="sm"
+                      className="bg-primary hover:bg-primary/90 text-white px-3 sm:px-6 text-[11px] sm:text-xs h-8 sm:h-9"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="size-3 sm:size-3.5 sm:mr-1.5 animate-spin" />
+                      ) : (
+                        <ChefHat className="size-3 sm:size-3.5 sm:mr-1.5" />
+                      )}
+                      <span className="hidden sm:inline">Kitchen</span>
+                    </Button>
+                  </div>
                 </div>
-              </ScrollArea>
+              </div>
 
-              {/* Bill Breakdown */}
-              <div className="bg-white border-t border-gray-200 p-2 md:p-3 flex-shrink-0">
-                <div className="space-y-1 mb-2 md:mb-3">
-                  <div className="flex justify-between text-[9px] md:text-[10px]">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span className="text-gray-900 font-semibold">
-                      {currency}{subtotal.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-[9px] md:text-[10px]">
-                    <span className="text-gray-600">CGST ({(gstRate * 100 / 2).toFixed(1)}%)</span>
-                    <span className="text-gray-900 font-semibold">
-                      {currency}{cgst.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-[9px] md:text-[10px]">
-                    <span className="text-gray-600">SGST ({(gstRate * 100 / 2).toFixed(1)}%)</span>
-                    <span className="text-gray-900 font-semibold">
-                      {currency}{sgst.toFixed(2)}
-                    </span>
-                  </div>
+              {/* Right Side - Order Summary */}
+              <div className="flex-[1_1_40%] min-w-[280px] max-w-[40%] bg-gray-50 border-l border-gray-200 flex flex-col h-full overflow-hidden">
+                {/* Header */}
+                <div className="bg-white border-b border-gray-200 p-3 sm:p-4 flex-shrink-0">
+                  <h2 className="text-sm sm:text-base font-bold text-gray-900 mb-3">
+                    Order Summary
+                  </h2>
 
-                  {!isWaiterMode && orderMethod === "dine-in" && serviceCharge > 0 && (
+                  <div
+                    className={cn(
+                      "grid gap-2 items-end",
+                      isWaiterMode ? "grid-cols-[1fr_auto]" : "grid-cols-[1fr_1fr_1fr_auto]",
+                    )}
+                  >
+                    {/* Table */}
+                    {!hideTableSelect && (
+                      <div className="space-y-1 min-w-0">
+                        <Label className="text-[10px] text-gray-600 font-medium flex items-center gap-1">
+                          <UtensilsCrossed className="size-3" />
+                          Table
+                        </Label>
+                        <Select value={selectedTableId} onValueChange={onTableChange}>
+                          <SelectTrigger className="h-8 text-[11px] border-2 focus:border-primary px-2">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tables?.filter((t: Table) =>
+                              t.currentStatus === "OCCUPIED" || t.currentStatus === "AVAILABLE"
+                            ).map((table: Table) => (
+                              <SelectItem key={table.id} value={table.id}>
+                                T{table.tableNumber}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {/* Waiter */}
+                    {!isWaiterMode && (
+                      <div className="space-y-1 min-w-0">
+                        <Label className="text-[10px] text-gray-600 font-medium flex items-center gap-1">
+                          <Users className="size-3" />
+                          Waiter
+                        </Label>
+                        <Select value={selectedWaiterId || "none"} onValueChange={onWaiterChange}>
+                          <SelectTrigger className="h-8 text-[11px] border-2 focus:border-primary px-2">
+                            <SelectValue placeholder="None" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {staff
+                              ?.filter((s: any) => s.role === "WAITER" && s.isActive)
+                              .map((waiter: any) => (
+                                <SelectItem key={waiter.id} value={waiter.id}>
+                                  {waiter.fullName.split(" ")[0]}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {/* Type */}
+                    {!hideOrderTypeSelect && !isWaiterMode && (
+                      <div className="space-y-1 min-w-0">
+                        <Label className="text-[10px] text-gray-600 font-medium flex items-center gap-1">
+                          <Utensils className="size-3" />
+                          Type
+                        </Label>
+                        <Select value={orderMethod} onValueChange={onOrderMethodChange}>
+                          <SelectTrigger className="h-8 text-[11px] border-2 focus:border-primary px-2">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="dine-in">Dine</SelectItem>
+                            <SelectItem value="takeaway">Take</SelectItem>
+                            <SelectItem value="delivery">Delv</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {/* Options */}
+                    <div className="flex flex-col items-end justify-end gap-1 pb-[4px]">
+                      <div className="flex items-end justify-end gap-2">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[9px] text-gray-600 font-medium">Note</span>
+                          <Button
+                            type="button"
+                            variant={cookingNote.trim() ? "default" : "outline"}
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setNoteDialogOpen(true)}
+                            title="Cooking note"
+                          >
+                            <StickyNote className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+
+                        {!isWaiterMode && showDiscount && (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-[9px] text-gray-600 font-medium">Disc</span>
+                            <Button
+                              type="button"
+                              variant={discountAmount.trim() ? "default" : "outline"}
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => setDiscountDialogOpen(true)}
+                              title="Discount"
+                            >
+                              <Percent className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Dialogs */}
+                    <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+                      <DialogContent className="max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Cooking Note</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-2">
+                          <Label>Note (optional)</Label>
+                          <Input
+                            value={cookingNote}
+                            onChange={(e) => onCookingNoteChange?.(e.target.value)}
+                            placeholder="E.g. less spicy, no onions"
+                          />
+                          <div className="flex justify-end">
+                            <Button type="button" onClick={() => setNoteDialogOpen(false)}>
+                              Done
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={discountDialogOpen} onOpenChange={setDiscountDialogOpen}>
+                      <DialogContent className="max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Discount</DialogTitle>
+                        </DialogHeader>
+
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Discount Type</Label>
+                            <RadioGroup
+                              value={discountMode}
+                              onValueChange={(v) => setDiscountMode(v as "amount" | "percent")}
+                              className="flex gap-4"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="amount" id="disc_amount" />
+                                <Label htmlFor="disc_amount">Amount</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="percent" id="disc_percent" />
+                                <Label htmlFor="disc_percent">Percent</Label>
+                              </div>
+                            </RadioGroup>
+                          </div>
+
+                          {discountMode === "amount" ? (
+                            <div className="space-y-2">
+                              <Label>Discount Amount (optional)</Label>
+                              <Input
+                                value={discountAmount}
+                                onChange={(e) => onDiscountAmountChange?.(e.target.value)}
+                                placeholder="0"
+                                inputMode="decimal"
+                              />
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <Label>Discount Percent (optional)</Label>
+                              <Input
+                                value={discountPercent}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setDiscountPercent(v);
+                                  const pct = Math.max(0, Math.min(100, parseFloat(v || "0") || 0));
+                                  const amt = (totalBeforeDiscount * pct) / 100;
+                                  onDiscountAmountChange?.(amt ? amt.toFixed(2) : "");
+                                }}
+                                placeholder="0"
+                                inputMode="decimal"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Applies on total ({currency}{totalBeforeDiscount.toFixed(2)}). Amount: {currency}
+                                {(((totalBeforeDiscount * (parseFloat(discountPercent || "0") || 0)) / 100) || 0).toFixed(2)}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setDiscountPercent("");
+                                onDiscountAmountChange?.("");
+                              }}
+                            >
+                              Clear
+                            </Button>
+                            <Button type="button" onClick={() => setDiscountDialogOpen(false)}>
+                              Done
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
+                  </div>
+                </div>
+
+                {/* Order Items */}
+                <ScrollArea className="flex-1 min-h-0 w-full">
+                  <div className="p-2 md:p-3 w-full overflow-hidden">
+                    <h3 className="font-semibold text-gray-900 mb-1.5 text-[11px] md:text-xs">
+                      Items ({manualCart.length})
+                    </h3>
+                    {manualCart.length === 0 ? (
+                      <p className="text-gray-500 text-[10px] text-center py-6">
+                        No items added
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5 w-full">
+                        {manualCart.map((item, idx) => {
+                          const menuItem = menuItems?.find(
+                            (mi) => mi.id === item.menuItemId
+                          );
+                          const selectedVariant = menuItem?.variants?.find(
+                            (v) => v.id === item.variantId
+                          );
+                          const selectedModifiers =
+                            menuItem?.modifierGroups?.flatMap(
+                              (g) =>
+                                g.modifiers?.filter((m) =>
+                                  item.modifierIds?.includes(m.id)
+                                ) || []
+                            ) || [];
+
+                          return (
+                            <div
+                              key={idx}
+                              className="bg-white rounded-md border border-gray-200 p-1.5 md:p-2 w-full overflow-hidden"
+                            >
+                              <div className="flex items-center justify-between gap-1 md:gap-1.5 w-full min-w-0">
+                                <div className="flex items-center gap-1 flex-1 min-w-0 pr-1">
+                                  <div
+                                    className={cn(
+                                      "size-2 md:size-2.5 rounded-sm border flex-shrink-0",
+                                      item.isVeg
+                                        ? "border-green-600 bg-white relative after:content-[''] after:absolute after:inset-[2px] after:bg-green-600 after:rounded-full"
+                                        : "border-red-600 bg-white relative after:content-[''] after:absolute after:inset-[2px] after:bg-red-600 after:rounded-full"
+                                    )}
+                                  />
+                                  <div className="flex flex-col min-w-0 flex-1">
+                                    <span className="font-semibold text-gray-900 text-[10px] md:text-[11px] break-all whitespace-normal block leading-tight">
+                                      {item.name}
+                                    </span>
+                                    {selectedVariant && (
+                                      <span className="text-[8px] md:text-[9px] text-blue-600 break-all whitespace-normal block leading-tight">
+                                        {selectedVariant.variantName}
+                                      </span>
+                                    )}
+                                    {selectedModifiers.length > 0 && (
+                                      <span className="text-[8px] md:text-[9px] text-amber-600 break-all whitespace-normal block leading-tight">
+                                        + {selectedModifiers.map((m) => m.name).join(", ")}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-end gap-1 flex-shrink-0">
+                                  <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5">
+                                    <Button
+                                      onClick={() => onDecrementLineItem(item.lineId)}
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 md:h-6 md:w-6 p-0 hover:bg-gray-200"
+                                    >
+                                      <Minus className="size-2 md:size-2.5" />
+                                    </Button>
+                                    <span className="font-bold text-[9px] md:text-[10px] min-w-[0.75rem] text-center px-0.5">
+                                      {item.quantity}
+                                    </span>
+                                    <Button
+                                      onClick={() => onIncrementLineItem(item.lineId)}
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 md:h-6 md:w-6 p-0 hover:bg-gray-200"
+                                    >
+                                      <Plus className="size-2 md:size-2.5" />
+                                    </Button>
+                                  </div>
+                                  <span className="font-bold text-gray-900 min-w-[2.5rem] md:min-w-[3rem] text-right text-[9px] md:text-[10px]">
+                                    {currency}{(item.unitPrice * item.quantity).toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+
+                {/* Bill Breakdown */}
+                <div className="bg-white border-t border-gray-200 p-2 md:p-3 flex-shrink-0">
+                  <div className="space-y-1 mb-2 md:mb-3">
                     <div className="flex justify-between text-[9px] md:text-[10px]">
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-600">
-                          Service Charge{serviceRatePct > 0 ? ` (${serviceRatePct.toFixed(0)}%)` : ""}
+                      <span className="text-gray-600">Subtotal</span>
+                      <span className="text-gray-900 font-semibold">
+                        {currency}{subtotal.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[9px] md:text-[10px]">
+                      <span className="text-gray-600">CGST ({(gstRate * 100 / 2).toFixed(1)}%)</span>
+                      <span className="text-gray-900 font-semibold">
+                        {currency}{cgst.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[9px] md:text-[10px]">
+                      <span className="text-gray-600">SGST ({(gstRate * 100 / 2).toFixed(1)}%)</span>
+                      <span className="text-gray-900 font-semibold">
+                        {currency}{sgst.toFixed(2)}
+                      </span>
+                    </div>
+
+                    {!isWaiterMode && orderMethod === "dine-in" && serviceCharge > 0 && (
+                      <div className="flex justify-between text-[9px] md:text-[10px]">
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-600">
+                            Service Charge{serviceRatePct > 0 ? ` (${serviceRatePct.toFixed(0)}%)` : ""}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-red-600 hover:text-red-700"
+                            title="Remove service charge"
+                            onClick={() => onToggleWaiveServiceCharge?.(true)}
+                          >
+                            <MinusCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <span className="text-gray-900 font-semibold">
+                          {currency}{serviceCharge.toFixed(2)}
                         </span>
+                      </div>
+                    )}
+
+                    {!isWaiterMode && showDiscount && discountNum > 0 && (
+                      <div className="flex justify-between text-[9px] md:text-[10px]">
+                        <span className="text-gray-600">Discount</span>
+                        <span className="text-gray-900 font-semibold">
+                          - {currency}{discountNum.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+
+                    <Separator className="my-1" />
+                    <div className="flex justify-between items-center pt-0.5">
+                      <span className="font-bold text-gray-900 text-[11px] md:text-xs">Total</span>
+                      <span className="font-bold text-base md:text-lg text-primary">
+                        {currency}{total.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {!isWaiterMode && (
+                    <div className="px-2 md:p-3 border-b border-gray-200">
+                      <Label className="text-[9px] md:text-[10px] text-gray-600 mb-1 md:mb-1.5 block font-medium">Payment</Label>
+                      <div className="flex gap-1 md:gap-1.5">
                         <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-red-600 hover:text-red-700"
-                          title="Remove service charge"
-                          onClick={() => onToggleWaiveServiceCharge?.(true)}
+                          onClick={() => onPaymentMethodChange?.("cash")}
+                          variant={paymentMethod === "cash" ? "default" : "outline"}
+                          size="sm"
+                          className={cn(
+                            "flex-1 h-7 md:h-8 text-[10px] md:text-[11px] font-semibold",
+                            paymentMethod === "cash"
+                              ? "bg-primary hover:bg-primary/90"
+                              : "hover:bg-gray-100 border-2"
+                          )}
                         >
-                          <MinusCircle className="h-4 w-4" />
+                          Cash
+                        </Button>
+                        <Button
+                          onClick={() => onPaymentMethodChange?.("card")}
+                          variant={paymentMethod === "card" ? "default" : "outline"}
+                          size="sm"
+                          className={cn(
+                            "flex-1 h-7 md:h-8 text-[10px] md:text-[11px] font-semibold",
+                            paymentMethod === "card"
+                              ? "bg-primary hover:bg-primary/90"
+                              : "hover:bg-gray-100 border-2"
+                          )}
+                        >
+                          Card
+                        </Button>
+                        <Button
+                          onClick={() => onPaymentMethodChange?.("upi")}
+                          variant={paymentMethod === "upi" ? "default" : "outline"}
+                          size="sm"
+                          className={cn(
+                            "flex-1 h-7 md:h-8 text-[10px] md:text-[11px] font-semibold",
+                            paymentMethod === "upi"
+                              ? "bg-primary hover:bg-primary/90"
+                              : "hover:bg-gray-100 border-2"
+                          )}
+                        >
+                          UPI
+                        </Button>
+                        <Button
+                          onClick={() => onPaymentMethodChange?.("due")}
+                          variant={paymentMethod === "due" ? "default" : "outline"}
+                          size="sm"
+                          className={cn(
+                            "flex-1 h-7 md:h-8 text-[10px] md:text-[11px] font-semibold",
+                            paymentMethod === "due"
+                              ? "bg-primary hover:bg-primary/90"
+                              : "hover:bg-gray-100 border-2"
+                          )}
+                        >
+                          Due
                         </Button>
                       </div>
-                      <span className="text-gray-900 font-semibold">
-                        {currency}{serviceCharge.toFixed(2)}
-                      </span>
                     </div>
                   )}
-
-                  {!isWaiterMode && showDiscount && discountNum > 0 && (
-                    <div className="flex justify-between text-[9px] md:text-[10px]">
-                      <span className="text-gray-600">Discount</span>
-                      <span className="text-gray-900 font-semibold">
-                        - {currency}{discountNum.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-
-                  <Separator className="my-1" />
-                  <div className="flex justify-between items-center pt-0.5">
-                    <span className="font-bold text-gray-900 text-[11px] md:text-xs">Total</span>
-                    <span className="font-bold text-base md:text-lg text-primary">
-                      {currency}{total.toFixed(2)}
-                    </span>
-                  </div>
                 </div>
-
-                {!isWaiterMode && (
-                <div className="px-2 md:p-3 border-b border-gray-200">
-                  <Label className="text-[9px] md:text-[10px] text-gray-600 mb-1 md:mb-1.5 block font-medium">Payment</Label>
-                  <div className="flex gap-1 md:gap-1.5">
-                    <Button
-                      onClick={() => onPaymentMethodChange?.("cash")}
-                      variant={paymentMethod === "cash" ? "default" : "outline"}
-                      size="sm"
-                      className={cn(
-                        "flex-1 h-7 md:h-8 text-[10px] md:text-[11px] font-semibold",
-                        paymentMethod === "cash"
-                          ? "bg-primary hover:bg-primary/90"
-                          : "hover:bg-gray-100 border-2"
-                      )}
-                    >
-                      Cash
-                    </Button>
-                    <Button
-                      onClick={() => onPaymentMethodChange?.("card")}
-                      variant={paymentMethod === "card" ? "default" : "outline"}
-                      size="sm"
-                      className={cn(
-                        "flex-1 h-7 md:h-8 text-[10px] md:text-[11px] font-semibold",
-                        paymentMethod === "card"
-                          ? "bg-primary hover:bg-primary/90"
-                          : "hover:bg-gray-100 border-2"
-                      )}
-                    >
-                      Card
-                    </Button>
-                    <Button
-                      onClick={() => onPaymentMethodChange?.("upi")}
-                      variant={paymentMethod === "upi" ? "default" : "outline"}
-                      size="sm"
-                      className={cn(
-                        "flex-1 h-7 md:h-8 text-[10px] md:text-[11px] font-semibold",
-                        paymentMethod === "upi"
-                          ? "bg-primary hover:bg-primary/90"
-                          : "hover:bg-gray-100 border-2"
-                      )}
-                    >
-                      UPI
-                    </Button>
-                    <Button
-                      onClick={() => onPaymentMethodChange?.("due")}
-                      variant={paymentMethod === "due" ? "default" : "outline"}
-                      size="sm"
-                      className={cn(
-                        "flex-1 h-7 md:h-8 text-[10px] md:text-[11px] font-semibold",
-                        paymentMethod === "due"
-                          ? "bg-primary hover:bg-primary/90"
-                          : "hover:bg-gray-100 border-2"
-                      )}
-                    >
-                      Due
-                    </Button>
-                  </div>
-                </div>
-                )}
               </div>
             </div>
           </div>
-        </div>
         </>
       )}
     </DialogContent>

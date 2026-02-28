@@ -181,10 +181,10 @@ export default function QueuePage() {
   return (
     <DashboardLayout>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
-        <div>
+        {/* <div>
           <h2 className="text-2xl sm:text-3xl font-heading font-bold">Guest Queue</h2>
           <p className="text-sm sm:text-base text-muted-foreground">Manage waitlists and seat guests efficiently.</p>
-        </div>
+        </div> */}
         <div className="flex gap-2 w-full sm:w-auto flex-wrap">
           <Button variant="outline" size="icon" onClick={() => refetch()} className="shrink-0">
             <RefreshCw className="w-4 h-4" />

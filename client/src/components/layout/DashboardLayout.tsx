@@ -100,8 +100,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link key={link.href} href={link.href}>
                   <div className={cn(
                     "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all cursor-pointer",
-                    isActive 
-                      ? "bg-primary/10 text-primary" 
+                    isActive
+                      ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}>
                     <Icon className="w-4 h-4" />
@@ -164,14 +164,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Mobile/Tablet Menu Overlay - visible below 1024px */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Mobile/Tablet Sidebar - visible below 1024px */}
-      <aside 
+      <aside
         className={cn(
           "w-64 bg-background border-r border-border fixed h-full z-50 flex flex-col lg:hidden transition-transform duration-300 ease-in-out",
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
@@ -186,8 +186,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               Qrave.
             </div>
           </Link>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
             onClick={() => setIsMobileMenuOpen(false)}
           >
@@ -214,11 +214,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               const isActive = location === link.href;
               return (
                 <Link key={link.href} href={link.href}>
-                  <div 
+                  <div
                     className={cn(
                       "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all cursor-pointer",
-                      isActive 
-                        ? "bg-primary/10 text-primary" 
+                      isActive
+                        ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                     onClick={handleNavClick}
@@ -277,9 +277,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="p-4 border-t border-border">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10" 
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             onClick={handleLogout}
           >
             <LogOut className="w-4 h-4 mr-2" />
@@ -292,8 +292,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex-1 lg:ml-64 min-h-screen flex flex-col">
         <header className="h-16 bg-background border-b border-border sticky top-0 z-30 px-4 md:px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
               onClick={() => setIsMobileMenuOpen(true)}
               className="lg:hidden"
@@ -318,7 +318,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        <div className="p-6 md:p-8 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500 min-w-0">
           {children}
         </div>
       </main>

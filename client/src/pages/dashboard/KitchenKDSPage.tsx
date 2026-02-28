@@ -67,11 +67,11 @@ export default function KitchenKDSPage() {
   const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
 
   const t = {
-    en: { 
-      title: "Kitchen Display (KDS)", 
-      active: "Active Orders", 
-      prepare: "Start Preparing", 
-      ready: "Mark Ready", 
+    en: {
+      title: "Kitchen Display (KDS)",
+      active: "Active Orders",
+      prepare: "Start Preparing",
+      ready: "Mark Ready",
       table: "Table",
       noOrders: "No active orders",
       allDone: "Kitchen is all caught up!",
@@ -79,10 +79,10 @@ export default function KitchenKDSPage() {
       new: "NEW",
       preparing: "COOKING",
     },
-    es: { 
-      title: "Pantalla de Cocina", 
-      active: "Pedidos Activos", 
-      prepare: "Empezar", 
+    es: {
+      title: "Pantalla de Cocina",
+      active: "Pedidos Activos",
+      prepare: "Empezar",
       ready: "Listo",
       table: "Mesa",
       noOrders: "Sin pedidos activos",
@@ -91,10 +91,10 @@ export default function KitchenKDSPage() {
       new: "NUEVO",
       preparing: "COCINANDO",
     },
-    hi: { 
-      title: "किचन डिस्प्ले", 
-      active: "एक्टिव ऑर्डर", 
-      prepare: "शुरू करें", 
+    hi: {
+      title: "किचन डिस्प्ले",
+      active: "एक्टिव ऑर्डर",
+      prepare: "शुरू करें",
       ready: "तैयार",
       table: "टेबल",
       noOrders: "कोई ऑर्डर नहीं",
@@ -364,17 +364,17 @@ export default function KitchenKDSPage() {
             {restaurant?.name || "Restaurant"} • {user?.fullName || user?.email} • {activeOrders.length} {t.active}
           </p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             onClick={() => refetch()}
             className="bg-white border-gray-300 hover:bg-gray-50"
           >
             <RefreshCw className="w-4 h-4" />
           </Button>
-          
+
           <Dialog open={languageDialogOpen} onOpenChange={setLanguageDialogOpen}>
             <DialogTrigger asChild>
               <Button
@@ -405,9 +405,9 @@ export default function KitchenKDSPage() {
             </DialogContent>
           </Dialog>
 
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             onClick={handleLogout}
             className="bg-white border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-700"
           >
@@ -422,7 +422,7 @@ export default function KitchenKDSPage() {
             <button
               onClick={() => setSection("active")}
               className={cn(
-                "flex-1 sm:flex-none px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-black/30", 
+                "flex-1 sm:flex-none px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-black/30",
                 section === "active" ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"
               )}
             >
@@ -431,7 +431,7 @@ export default function KitchenKDSPage() {
             <button
               onClick={() => setSection("ready")}
               className={cn(
-                "flex-1 sm:flex-none px-4 py-2 text-sm font-semibold transition-colors border-l border-black focus:outline-none focus:ring-2 focus:ring-black/30", 
+                "flex-1 sm:flex-none px-4 py-2 text-sm font-semibold transition-colors border-l border-black focus:outline-none focus:ring-2 focus:ring-black/30",
                 section === "ready" ? "bg-black text-white" : "bg-white text-black hover:bg-gray-100"
               )}
             >

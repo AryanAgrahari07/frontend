@@ -293,13 +293,13 @@ export function MenuItemCustomization({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b">
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Customize: {menuItemName}
+        <DialogContent className="max-w-4xl w-[calc(100vw-1rem)] md:w-full mx-2 sm:mx-auto h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="px-4 py-3 sm:px-6 sm:pt-6 sm:pb-4 border-b shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg pr-6 sm:pr-0">
+              <Settings className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+              <span className="truncate">Customize: {menuItemName}</span>
             </DialogTitle>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Base Price: {currency}{Number(basePrice).toFixed(2)}
             </p>
           </DialogHeader>
@@ -315,17 +315,17 @@ export function MenuItemCustomization({
               onValueChange={(v) => setActiveTab(v as "variants" | "modifiers")}
               className="flex-1 flex flex-col overflow-hidden"
             >
-              <TabsList className="grid w-full grid-cols-2 mx-6 mt-4">
-                <TabsTrigger value="variants">
-                  Size/Variants
+              <TabsList className="grid w-full grid-cols-2 mx-4 sm:mx-6 mt-3 sm:mt-4 shrink-0 h-9 sm:h-10 p-1">
+                <TabsTrigger value="variants" className="text-[10px] sm:text-xs md:text-sm px-1 sm:px-2 gap-1 sm:gap-2 flex items-center justify-center min-w-0">
+                  <span className="truncate">Size/Variants</span>
                   {variants.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 text-xs">{variants.length}</Badge>
+                    <Badge variant="secondary" className="text-[8px] sm:text-[10px] px-1 sm:px-1.5 h-3.5 sm:h-4 shrink-0">{variants.length}</Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="modifiers">
-                  Add-ons &amp; Modifiers
+                <TabsTrigger value="modifiers" className="text-[10px] sm:text-xs md:text-sm px-1 sm:px-2 gap-1 sm:gap-2 flex items-center justify-center min-w-0">
+                  <span className="truncate">Add-ons/Mods</span>
                   {modifierGroups.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 text-xs">{modifierGroups.length}</Badge>
+                    <Badge variant="secondary" className="text-[8px] sm:text-[10px] px-1 sm:px-1.5 h-3.5 sm:h-4 shrink-0">{modifierGroups.length}</Badge>
                   )}
                 </TabsTrigger>
               </TabsList>
@@ -333,19 +333,19 @@ export function MenuItemCustomization({
               {/* ================================================ VARIANTS TAB */}
               <TabsContent
                 value="variants"
-                className="flex-1 flex flex-col mt-0 overflow-hidden data-[state=active]:flex"
+                className="flex-1 flex flex-col mt-0 overflow-hidden min-h-0 data-[state=active]:flex"
               >
-                <div className="flex justify-between items-center px-6 py-4">
-                  <p className="text-sm text-muted-foreground">
-                    Define different sizes or portions (e.g., Small, Medium, Large)
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 sm:px-6 py-3 sm:py-4 gap-2 sm:gap-4 shrink-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-tight">
+                    Define sizes or portions (e.g., Small, Large)
                   </p>
-                  <Button size="sm" onClick={() => setIsAddingVariant(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
+                  <Button size="sm" onClick={() => setIsAddingVariant(true)} className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9">
+                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                     Add Variant
                   </Button>
                 </div>
 
-                <ScrollArea className="flex-1 px-6">
+                <ScrollArea className="flex-1 px-4 sm:px-6 min-h-0">
                   <div className="space-y-2 pb-4">
                     {variants.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground text-sm">
@@ -410,22 +410,22 @@ export function MenuItemCustomization({
               {/* ============================================ MODIFIERS TAB */}
               <TabsContent
                 value="modifiers"
-                className="flex-1 flex flex-col mt-0 overflow-hidden data-[state=active]:flex"
+                className="flex-1 flex flex-col mt-0 overflow-hidden min-h-0 data-[state=active]:flex"
               >
-                <div className="flex justify-between items-center px-6 py-4">
-                  <p className="text-sm text-muted-foreground">
-                    Add customization groups (e.g., Toppings, Spice Level)
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 sm:px-6 py-3 sm:py-4 gap-2 sm:gap-4 shrink-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-tight">
+                    Add customization groups (e.g., Toppings, Spice)
                   </p>
-                  <Button size="sm" onClick={() => setIsAddingGroup(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
+                  <Button size="sm" onClick={() => setIsAddingGroup(true)} className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9">
+                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                     New Group
                   </Button>
                 </div>
 
-                <ScrollArea className="flex-1 px-6">
+                <ScrollArea className="flex-1 px-4 sm:px-6 min-h-0">
                   <div className="space-y-3 pb-4">
                     {modifierGroups.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground text-sm">
+                      <div className="text-center py-8 text-muted-foreground text-xs sm:text-sm px-4">
                         No modifier groups yet. Create groups like "Toppings", "Spice Level", etc.
                       </div>
                     ) : (
@@ -438,17 +438,17 @@ export function MenuItemCustomization({
                               className="flex items-center justify-between p-3 bg-muted/30 cursor-pointer hover:bg-muted/50"
                               onClick={() => toggleGroupExpanded(group.id)}
                             >
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">{group.name}</span>
-                                  <Badge variant="outline" className="text-xs">
+                              <div className="flex-1 min-w-0 pr-2">
+                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                  <span className="font-medium truncate max-w-full text-xs sm:text-sm">{group.name}</span>
+                                  <Badge variant="outline" className="text-[9px] sm:text-xs px-1.5 h-4 sm:h-5">
                                     {group.selectionType === "SINGLE" ? "Pick One" : "Pick Multiple"}
                                   </Badge>
                                   {group.isRequired && (
-                                    <Badge className="text-xs">Required</Badge>
+                                    <Badge className="text-[9px] sm:text-xs px-1.5 h-4 sm:h-5">Req</Badge>
                                   )}
-                                  <Badge variant="secondary" className="text-xs">
-                                    {group.modifiers.length} options
+                                  <Badge variant="secondary" className="text-[9px] sm:text-xs px-1.5 h-4 sm:h-5">
+                                    {group.modifiers.length} opt
                                   </Badge>
                                 </div>
                                 {group.description && (
@@ -485,11 +485,11 @@ export function MenuItemCustomization({
                                     key={modifier.id}
                                     className="flex items-center justify-between p-2 bg-background border rounded"
                                   >
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm font-medium">{modifier.name}</span>
+                                    <div className="flex-1 min-w-0 pr-2">
+                                      <div className="flex items-center gap-1.5 sm:gap-2">
+                                        <span className="text-xs sm:text-sm font-medium truncate">{modifier.name}</span>
                                         {modifier.isDefault && (
-                                          <Badge variant="outline" className="text-xs">
+                                          <Badge variant="outline" className="text-[9px] sm:text-xs px-1.5 h-4 sm:h-5">
                                             Default
                                           </Badge>
                                         )}
@@ -584,8 +584,8 @@ export function MenuItemCustomization({
             </Tabs>
           )}
 
-          <DialogFooter className="px-6 py-4 border-t">
-            <Button onClick={onClose}>Done</Button>
+          <DialogFooter className="px-4 sm:px-6 py-3 sm:py-4 border-t shrink-0">
+            <Button onClick={onClose} className="w-full sm:w-auto">Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -598,13 +598,13 @@ export function MenuItemCustomization({
           setVariantForm({ variantName: "", price: 0, isDefault: false });
         }
       }}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-md max-h-[85vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4">
-            <DialogTitle>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-md mx-2 sm:mx-auto max-h-[85vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="px-4 py-3 sm:px-6 sm:pt-6 sm:pb-4 border-b shrink-0">
+            <DialogTitle className="text-base sm:text-lg pr-6 sm:pr-0">
               {editingVariant ? "Edit Variant" : "Add New Variant"}
             </DialogTitle>
           </DialogHeader>
-          
+
           <ScrollArea className="flex-1 px-6">
             <div className="space-y-4 pb-4">
               <div className="space-y-2">
@@ -646,8 +646,8 @@ export function MenuItemCustomization({
               </div>
             </div>
           </ScrollArea>
-          
-          <DialogFooter className="px-6 py-4 border-t">
+
+          <DialogFooter className="px-4 sm:px-6 py-3 sm:py-4 border-t shrink-0">
             <Button
               onClick={editingVariant ? handleUpdateVariant : handleAddVariant}
               disabled={!variantForm.variantName || !variantForm.price}
@@ -673,11 +673,11 @@ export function MenuItemCustomization({
           });
         }
       }}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-md max-h-[85vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4">
-            <DialogTitle>Create New Modifier Group</DialogTitle>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-md mx-2 sm:mx-auto max-h-[85vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="px-4 py-3 sm:px-6 sm:pt-6 sm:pb-4 border-b shrink-0">
+            <DialogTitle className="text-base sm:text-lg pr-6 sm:pr-0">Create New Modifier Group</DialogTitle>
           </DialogHeader>
-          
+
           <ScrollArea className="flex-1 px-6">
             <div className="space-y-4 pb-4">
               <div className="space-y-2">
@@ -748,8 +748,8 @@ export function MenuItemCustomization({
               </div>
             </div>
           </ScrollArea>
-          
-          <DialogFooter className="px-6 py-4 border-t">
+
+          <DialogFooter className="px-4 sm:px-6 py-3 sm:py-4 border-t shrink-0">
             <Button
               onClick={handleCreateModifierGroup}
               disabled={!groupForm.name}

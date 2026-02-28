@@ -2,18 +2,18 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  UserPlus, LayoutGrid, Users, Languages, MapPin, Check, ShoppingCart, Plus, Minus, X, 
+import {
+  UserPlus, LayoutGrid, Users, Languages, MapPin, Check, ShoppingCart, Plus, Minus, X,
   Loader2, RefreshCw, LogOut, Clock, Bell, ChefHat, Utensils, Receipt, Edit2, Trash2,
   AlertCircle, Grid3x3, ArrowLeft, Search, Save, Printer, UtensilsCrossed
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { 
-  useTables, 
-  useQueueActive, 
-  useMenuCategories, 
+import {
+  useTables,
+  useQueueActive,
+  useMenuCategories,
   useRestaurant,
   useUpdateTableStatus,
   useCreateOrder,
@@ -72,7 +72,7 @@ export default function WaiterTerminalPage() {
     const maybe = (ordersData as any)?.orders;
     return Array.isArray(maybe) ? (maybe as Order[]) : [];
   }, [ordersData]);
-  
+
   const updateTableStatus = useUpdateTableStatus(restaurantId);
   const createOrder = useCreateOrder(restaurantId);
   const seatGuest = useSeatGuest(restaurantId);
@@ -92,7 +92,7 @@ export default function WaiterTerminalPage() {
   const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Order | null>(null);
   const [activeTab, setActiveTab] = useState<"floor" | "orders">("floor");
   const [dietaryFilter, setDietaryFilter] = useState<'any' | 'veg' | 'non-veg'>('any');
-  
+
   // Mobile detection and POS state
   const [isMobile, setIsMobile] = useState(false);
   const [showMobilePOS, setShowMobilePOS] = useState(false);
@@ -109,7 +109,7 @@ export default function WaiterTerminalPage() {
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "upi" | "due">("due");
   const [discountAmount, setDiscountAmount] = useState("");
   const [waiveServiceCharge, setWaiveServiceCharge] = useState(false);
-  
+
   // Track served orders for notifications
   const servedOrdersRef = useRef<Set<string>>(new Set());
 
@@ -133,7 +133,7 @@ export default function WaiterTerminalPage() {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
@@ -167,8 +167,8 @@ export default function WaiterTerminalPage() {
         // Play notification sound if available
         try {
           const audio = new Audio("/notification.mp3");
-          audio.play().catch(() => {});
-        } catch {}
+          audio.play().catch(() => { });
+        } catch { }
       }
     });
   }, [orders]);
@@ -198,8 +198,8 @@ export default function WaiterTerminalPage() {
         toast.success(msg, { duration: 9000, icon: <Bell className="w-5 h-5 text-primary" /> });
         try {
           const audio = new Audio("/notification.mp3");
-          audio.play().catch(() => {});
-        } catch {}
+          audio.play().catch(() => { });
+        } catch { }
       }
     }
   }, [tables, user?.id]);
@@ -231,25 +231,25 @@ export default function WaiterTerminalPage() {
       toast.success(msg, { duration: 9000, icon: <Receipt className="w-5 h-5 text-primary" /> });
       try {
         const audio = new Audio("/notification.mp3");
-        audio.play().catch(() => {});
-      } catch {}
+        audio.play().catch(() => { });
+      } catch { }
     }
   }, [orders, user?.id]);
 
   const t = {
-    en: { 
-      title: "Waiter Terminal", 
-      floor: "Floor Map", 
+    en: {
+      title: "Waiter Terminal",
+      floor: "Floor Map",
       orders: "Active Orders",
-      queue: "Guest Queue", 
-      seat: "Seat Party", 
-      tables: "Tables", 
-      available: "Available", 
-      occupied: "Occupied", 
-      order: "New Order", 
-      add: "Add to Order", 
-      confirm: "Send to Kitchen", 
-      items: "Items", 
+      queue: "Guest Queue",
+      seat: "Seat Party",
+      tables: "Tables",
+      available: "Available",
+      occupied: "Occupied",
+      order: "New Order",
+      add: "Add to Order",
+      confirm: "Send to Kitchen",
+      items: "Items",
       callNext: "Call Next",
       noQueue: "No guests waiting",
       noTables: "No tables configured",
@@ -261,19 +261,19 @@ export default function WaiterTerminalPage() {
       preparing: "Preparing",
       pending: "New",
     },
-    es: { 
-      title: "Terminal del Camarero", 
-      floor: "Mapa del Piso", 
+    es: {
+      title: "Terminal del Camarero",
+      floor: "Mapa del Piso",
       orders: "Pedidos Activos",
-      queue: "Cola de Invitados", 
-      seat: "Sentar Grupo", 
-      tables: "Mesas", 
-      available: "Disponible", 
-      occupied: "Ocupado", 
-      order: "Nuevo Pedido", 
-      add: "Agregar", 
-      confirm: "Enviar a Cocina", 
-      items: "Artículos", 
+      queue: "Cola de Invitados",
+      seat: "Sentar Grupo",
+      tables: "Mesas",
+      available: "Disponible",
+      occupied: "Ocupado",
+      order: "Nuevo Pedido",
+      add: "Agregar",
+      confirm: "Enviar a Cocina",
+      items: "Artículos",
       callNext: "Llamar Siguiente",
       noQueue: "Sin invitados esperando",
       noTables: "Sin mesas configuradas",
@@ -285,19 +285,19 @@ export default function WaiterTerminalPage() {
       preparing: "Preparando",
       pending: "Nuevo",
     },
-    hi: { 
-      title: "वेटर टर्मिनल", 
-      floor: "फ्लोर मैप", 
+    hi: {
+      title: "वेटर टर्मिनल",
+      floor: "फ्लोर मैप",
       orders: "एक्टिव ऑर्डर",
-      queue: "मेहमानों की सूची", 
-      seat: "बैठाएं", 
-      tables: "मेज़", 
-      available: "उपलब्ध", 
-      occupied: "भरा हुआ", 
-      order: "नया ऑर्डर", 
-      add: "जोड़ें", 
-      confirm: "किचन भेजें", 
-      items: "सामान", 
+      queue: "मेहमानों की सूची",
+      seat: "बैठाएं",
+      tables: "मेज़",
+      available: "उपलब्ध",
+      occupied: "भरा हुआ",
+      order: "नया ऑर्डर",
+      add: "जोड़ें",
+      confirm: "किचन भेजें",
+      items: "सामान",
       callNext: "अगला बुलाएं",
       noQueue: "कोई मेहमान इंतज़ार में नहीं",
       noTables: "कोई टेबल नहीं",
@@ -443,38 +443,38 @@ export default function WaiterTerminalPage() {
   };
 
 
-const submitOrder = async () => {
-  const tableId = isMobile ? selectedTableId : selectedTableForOrder?.id;
-  if (!tableId || cart.length === 0) return;
-  
-  try {
-    await createOrder.mutateAsync({
-      tableId,
-      orderType: "DINE_IN",
-      items: cart.map((li) => ({
-        menuItemId: li.menuItemId,
-        quantity: li.quantity,
-        variantId: li.variantId,
-        modifierIds: li.modifierIds,
-      })),
-      notes: cookingNote.trim() || undefined,
-    });
-    if (isMobile) {
-      handleCloseMobilePOS();
-    } else {
-      setSelectedTableForOrder(null);
+  const submitOrder = async () => {
+    const tableId = isMobile ? selectedTableId : selectedTableForOrder?.id;
+    if (!tableId || cart.length === 0) return;
+
+    try {
+      await createOrder.mutateAsync({
+        tableId,
+        orderType: "DINE_IN",
+        items: cart.map((li) => ({
+          menuItemId: li.menuItemId,
+          quantity: li.quantity,
+          variantId: li.variantId,
+          modifierIds: li.modifierIds,
+        })),
+        notes: cookingNote.trim() || undefined,
+      });
+      if (isMobile) {
+        handleCloseMobilePOS();
+      } else {
+        setSelectedTableForOrder(null);
+      }
+      setCart([]);
+      setCookingNote("");
+      refetchOrders();
+    } catch {
+      // Error handled by mutation
     }
-    setCart([]);
-    setCookingNote("");
-    refetchOrders();
-  } catch {
-    // Error handled by mutation
-  }
-};
+  };
 
   const handleAddItemsToOrder = async () => {
     if (!selectedOrderForEdit || cart.length === 0) return;
-    
+
     try {
       // Update cooking note for the order (optional)
       if (editCookingNote.trim() !== (selectedOrderForEdit.notes || "").trim()) {
@@ -667,9 +667,9 @@ const submitOrder = async () => {
   // Filter menu items by active category and search query
   const filteredMenuItems = useMemo(() => {
     if (!menuData?.items) return [];
-    
+
     let items = menuData.items;
-    
+
     // Filter by category if not searching
     if (!searchQuery && activeCategory) {
       items = items.filter(
@@ -678,31 +678,31 @@ const submitOrder = async () => {
     } else if (searchQuery) {
       // Filter by search query across all categories
       items = items.filter(
-        (item: MenuItem) => 
-          item.isAvailable && 
+        (item: MenuItem) =>
+          item.isAvailable &&
           item.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    
+
     return items;
   }, [menuData, activeCategory, searchQuery]);
 
   // Organize menu items by category and apply dietary filter
   const categoriesWithItems = useMemo(() => {
     if (!menuData) return [];
-    
+
     // Filter items by dietary type if filter is active
     let filteredItems = menuData.items?.filter((item: MenuItem) => item.isAvailable) || [];
     if (dietaryFilter === 'veg') {
-      filteredItems = filteredItems.filter((item: MenuItem) => 
+      filteredItems = filteredItems.filter((item: MenuItem) =>
         item.dietaryTags?.some(tag => tag.toLowerCase() === 'veg')
       );
     } else if (dietaryFilter === 'non-veg') {
-      filteredItems = filteredItems.filter((item: MenuItem) => 
+      filteredItems = filteredItems.filter((item: MenuItem) =>
         item.dietaryTags?.some(tag => tag.toLowerCase() === 'non-veg')
       );
     }
-    
+
     return menuData.categories?.map((cat: MenuCategory) => ({
       ...cat,
       items: filteredItems.filter((item: MenuItem) => item.categoryId === cat.id),
@@ -826,20 +826,20 @@ const submitOrder = async () => {
             <h1 className="text-2xl font-heading font-bold text-slate-900">{t.title}</h1>
             <p className="text-slate-500 text-sm">{restaurant?.name || "Restaurant"} • {user?.fullName || user?.email}</p>
           </div>
-          
+
           <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={handleRefreshAll}
             >
               <RefreshCw className="w-4 h-4 mr-1" /> Refresh
             </Button>
-            
+
             <div className="flex items-center gap-2 bg-white p-1.5 rounded-lg shadow-sm border border-slate-200">
               <Languages className="w-4 h-4 text-slate-400 ml-1" />
               {(["en", "es", "hi"] as const).map((l) => (
-                <Button 
+                <Button
                   key={l}
                   variant={language === l ? "default" : "ghost"}
                   size="sm"
@@ -864,9 +864,9 @@ const submitOrder = async () => {
             <div className="flex-1">
               <p className="text-sm font-medium text-green-800">{notifications[0].message}</p>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setNotifications(prev => prev.slice(1))}
               className="text-green-600 hover:text-green-800"
             >
@@ -902,15 +902,15 @@ const submitOrder = async () => {
                     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-slate-400" /> {t.occupied}</span>
                   </div>
                 </div>
-                
+
                 {tables && tables.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                     {tables.map((table: Table) => (
                       <div key={table.id} className="relative group">
                         <div className="absolute -top-1 -right-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            size="icon" 
-                            variant="secondary" 
+                          <Button
+                            size="icon"
+                            variant="secondary"
                             className="h-6 w-6 rounded-full shadow-lg border border-slate-200"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -929,8 +929,8 @@ const submitOrder = async () => {
                           }}
                           className={cn(
                             "w-full aspect-square rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all active:scale-95",
-                            table.currentStatus === "AVAILABLE" 
-                              ? "bg-white border-green-200 shadow-sm" 
+                            table.currentStatus === "AVAILABLE"
+                              ? "bg-white border-green-200 shadow-sm"
                               : "bg-slate-100 border-primary/50 shadow-inner text-slate-900 cursor-pointer hover:bg-slate-200"
                           )}
                         >
@@ -982,7 +982,7 @@ const submitOrder = async () => {
                               <p className="font-bold">{guest.guestName}</p>
                               <p className="text-xs text-slate-500">{guest.partySize} people</p>
                             </div>
-                            <Button 
+                            <Button
                               size="sm"
                               onClick={() => setSelectedGuestForSeating(guest)}
                             >
@@ -1063,13 +1063,13 @@ const submitOrder = async () => {
                       {/* Order Items */}
                       <div className="space-y-1 max-h-32 overflow-y-auto">
                         {order.items?.map((item) => (
-                            <CustomizedOrderItemDisplay
-                                key={item.id}
-                                item={item as any}
-                                currency={currency}
-                                compact={true}
-                              />
-                            ))}
+                          <CustomizedOrderItemDisplay
+                            key={item.id}
+                            item={item as any}
+                            currency={currency}
+                            compact={true}
+                          />
+                        ))}
                       </div>
 
                       {/* Total */}
@@ -1081,9 +1081,9 @@ const submitOrder = async () => {
                       {/* Actions */}
                       <div className="flex gap-2 pt-2">
                         {order.status === "PENDING" && (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
+                          <Button
+                            size="sm"
+                            variant="outline"
                             className="flex-1"
                             onClick={() => handleAddItemsClick(order)}
                           >
@@ -1091,8 +1091,8 @@ const submitOrder = async () => {
                           </Button>
                         )}
                         {order.status === "READY" && (
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             className="flex-1 bg-green-600 hover:bg-green-700"
                             onClick={() => handleMarkServed(order)}
                             disabled={updateOrderStatus.isPending}
@@ -1275,8 +1275,8 @@ const submitOrder = async () => {
             )}
           </div>
           <DialogFooter>
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               onClick={() => selectedGuestForSeating && handleSeatGuest(selectedGuestForSeating)}
               disabled={seatGuest.isPending}
             >

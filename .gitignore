@@ -7,3 +7,5 @@ vite.config.ts.*
 *.tar.gz
 .local
 backend
+ios
+android

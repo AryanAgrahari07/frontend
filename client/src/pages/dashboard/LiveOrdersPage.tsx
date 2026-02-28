@@ -89,7 +89,7 @@ export default function LiveOrdersPage() {
     isPrinting,
     printBill: printThermalBill,
   } = useThermalPrinter(32);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10); // Items per page
@@ -100,7 +100,7 @@ export default function LiveOrdersPage() {
     isLoading,
     refetch,
   } = useOrders(restaurantId, { limit: pageSize, offset });
-  
+
   const { data: menuData } = useMenuCategories(
     restaurantId,
     restaurant?.slug ?? null,
@@ -194,7 +194,7 @@ export default function LiveOrdersPage() {
   const activeOrders = useMemo(() => {
     return orders.filter(
       (o: Order) =>
-        !(o.paymentStatus === "PAID" && o.status === "SERVED" && o.isClosed) && 
+        !(o.paymentStatus === "PAID" && o.status === "SERVED" && o.isClosed) &&
         o.status !== "CANCELLED"
     );
   }, [orders]);
@@ -368,7 +368,7 @@ export default function LiveOrdersPage() {
 
       const paymentStatusMap = {
         "cash": "PAID",
-        "card": "PAID", 
+        "card": "PAID",
         "upi": "PAID",
         "due": "DUE",
       };
@@ -406,7 +406,7 @@ export default function LiveOrdersPage() {
       }
 
       toast.success(
-       `Order ${paymentMethod !== 'due' ? 'placed and paid' : 'sent to kitchen'}! ${orderMethod === 'dine-in' ? `Table ${selectedTableId}` : ''} - ${manualCart.length} items`,
+        `Order ${paymentMethod !== 'due' ? 'placed and paid' : 'sent to kitchen'}! ${orderMethod === 'dine-in' ? `Table ${selectedTableId}` : ''} - ${manualCart.length} items`,
       );
 
       // Refresh list so bill details reflects latest discount
@@ -444,7 +444,7 @@ export default function LiveOrdersPage() {
         orderId: orderToCancel.id,
         reason: cancelReason.trim(),
       });
-      
+
       setCancelDialogOpen(false);
       setOrderToCancel(null);
       setCancelReason("");
@@ -568,12 +568,12 @@ export default function LiveOrdersPage() {
       );
 
       refetch();
-      
+
       setTimeout(() => {
         setIsBillingOpen(false);
         setSelectedOrder(null);
       }, 1500);
-      
+
     } catch (error: any) {
       console.error("❌ Payment error:", error);
       toast.error(error.message || "Failed to process payment");
@@ -778,7 +778,7 @@ export default function LiveOrdersPage() {
             </Button>
           </Link>
           {isMobile ? (
-            <Button 
+            <Button
               onClick={handleNewOrderClick}
               className="shadow-lg flex-1 sm:flex-none bg-primary hover:bg-primary/90"
             >
@@ -803,7 +803,7 @@ export default function LiveOrdersPage() {
               }}
             >
               <DialogTrigger asChild>
-                <Button 
+                <Button
                   className="shadow-lg flex-1 sm:flex-none bg-primary hover:bg-primary/90"
                 >
                   <Utensils className="w-4 h-4 sm:mr-2" />
@@ -892,13 +892,13 @@ export default function LiveOrdersPage() {
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col gap-4">
                       {/* Header Section */}
-                      <div className="space-y-2">     
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-lg sm:text-xl font-bold font-heading">
                             {order.table?.tableNumber
                               ? `Table ${order.table.tableNumber}`
                               : order.guestName ||
-                                `Order #${order.id.slice(-6)}`}
+                              `Order #${order.id.slice(-6)}`}
                           </span>
                           <Badge
                             variant={getStatusColor(order.status)}
@@ -997,17 +997,17 @@ export default function LiveOrdersPage() {
                           )}
 
                           {order.status === "PREPARING" && (
-                            <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() =>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
                                 updateStatus.mutate({
                                   orderId: order.id,
                                   status: "READY",
                                 })
-                              } 
-                            disabled={updateStatus.isPending}
-                            className="flex-1 sm:flex-initial"
+                              }
+                              disabled={updateStatus.isPending}
+                              className="flex-1 sm:flex-initial"
                             >
                               Preparing...
                             </Button>
@@ -1031,7 +1031,7 @@ export default function LiveOrdersPage() {
                             </Button>
                           )}
 
-                          {order.paymentStatus !== "PAID" && 
+                          {order.paymentStatus !== "PAID" &&
                             order.status !== "CANCELLED" && (
                               <Button
                                 size="sm"
@@ -1063,10 +1063,10 @@ export default function LiveOrdersPage() {
                             </Button>
                           )}
 
-                          {order.status === "SERVED" && 
-                            order.paymentStatus === "PAID" && 
+                          {order.status === "SERVED" &&
+                            order.paymentStatus === "PAID" &&
                             !order.isClosed &&
-                             (
+                            (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1451,7 +1451,7 @@ export default function LiveOrdersPage() {
                       <Separator />
                       <div>
                         <h4 className="font-semibold text-xs uppercase tracking-wide text-muted-foreground mb-3">
-                          {selectedOrder.paymentStatus === "PARTIALLY_PAID" 
+                          {selectedOrder.paymentStatus === "PARTIALLY_PAID"
                             ? "Pay Outstanding Amount"
                             : "Accept Payment"}
                         </h4>
@@ -1521,7 +1521,7 @@ export default function LiveOrdersPage() {
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Previous
               </Button>
-              
+
               <div className="text-sm text-muted-foreground">
                 Page {currentPage} of {totalPages}
               </div>
@@ -1605,7 +1605,7 @@ export default function LiveOrdersPage() {
           </div>
         </div>
       </div>
-  
+
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1656,7 +1656,7 @@ export default function LiveOrdersPage() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>   
+      </AlertDialog>
     </DashboardLayout>
   );
 }

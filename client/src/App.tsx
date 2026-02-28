@@ -36,7 +36,7 @@ function Router() {
       <Route path="/auth" component={LoginPage} />
       <Route path="/signup" component={OnboardingPage} />
       <Route path="/onboarding" component={OnboardingPage} />
-      
+
       {/* Staff Direct Access Routes - Protected */}
       <Route path="/kitchen">
         {() => (
@@ -52,7 +52,7 @@ function Router() {
           </ProtectedRoute>
         )}
       </Route>
-      
+
       {/* Dashboard Routes */}
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/dashboard/orders" component={LiveOrdersPage} />
@@ -66,11 +66,11 @@ function Router() {
       <Route path="/dashboard/qr" component={QRCodesPage} />
       <Route path="/dashboard/analytics" component={AnalyticsPage} />
       <Route path="/dashboard/settings" component={SettingsPage} />
-      
+
       {/* Public Routes */}
       <Route path="/r/:slug" component={PublicMenuPage} />
       <Route path="/q/:slug" component={QueueRegistrationPage} />
-      
+
       <Route component={NotFound} />
     </Switch>
   );

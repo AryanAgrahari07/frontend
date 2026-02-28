@@ -103,8 +103,8 @@ export default function SettingsPage() {
   const { data: countryOptions, isLoading: loadingCountries } = useCountries(countrySearch);
   const { data: stateOptions, isLoading: loadingStates } = useStates(selectedCountryCode, stateSearch);
   const { data: cityOptions, isLoading: loadingCities } = useCities(
-    selectedCountryCode,  
-    selectedStateCode, 
+    selectedCountryCode,
+    selectedStateCode,
     citySearch
   );
   const { data: currencyOptions, isLoading: loadingCurrencies } = useCurrencies(currencySearch);
@@ -258,447 +258,442 @@ export default function SettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl space-y-6 sm:space-y-8 px-4 sm:px-0">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-heading font-bold">Store Settings</h2>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">Configure your restaurant profile and operations.</p>
-        </div>
-
-        <div className="grid gap-6 sm:gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Business Profile</CardTitle>
-            <CardDescription>
-              Update your restaurant details and business category.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Restaurant Name</Label>
-              <Input
-                value={restaurantName}
-                onChange={(e) => setRestaurantName(e.target.value)}
-                className="text-sm"
-              />
-            </div>
-
-            <div>
-              <Label>Public Menu Link (Slug)</Label>
-              <Input
-                value={slug}
-                onChange={(e) =>
-                  setSlug(
-                    e.target.value
-                      .toLowerCase()
-                      .replace(/\s+/g, "-")
-                      .replace(/[^a-z0-9-]/g, "")
-                      .replace(/-+/g, "-")
-                      .replace(/^-|-$/g, ""),
-                  )
-                }
-                placeholder="e.g. my-restaurant"
-                className="text-sm font-mono"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Your menu URL: <span className="font-mono">{typeof window !== 'undefined' ? window.location.origin : ''}/r/{slug || '—'}</span>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Slug must be unique. Use only lowercase letters, numbers and hyphens.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-               <Label className="text-sm">Business Type</Label>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start font-normal h-10 text-sm">
-                        <div className="flex items-center gap-2">
-                          {(() => {
-                            const selected = SHOP_TYPES.find(t => t.id === shopType);
-                            const TypeIcon = selected?.icon || Store;
-                            return <TypeIcon className="w-4 h-4 text-primary flex-shrink-0" />;
-                          })()}
-                          <span className="truncate">{SHOP_TYPES.find(t => t.id === shopType)?.label || "Select Type..."}</span>
-                        </div>
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle className="text-lg sm:text-xl">Select Business Type</DialogTitle>
-                        <DialogDescription className="text-xs sm:text-sm">Choose the category that best describes your establishment.</DialogDescription>
-                      </DialogHeader>
-                      <div className="py-4">
-                        <RadioGroup value={shopType} onValueChange={setShopType} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {SHOP_TYPES.map((type) => {
-                            const Icon = type.icon;
-                            return (
-                              <div key={type.id}>
-                                <RadioGroupItem value={type.id} id={type.id} className="peer sr-only" />
-                                <Label
-                                  htmlFor={type.id}
-                                  className="flex flex-col h-full rounded-xl border-2 border-muted bg-popover p-3 sm:p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
-                                >
-                                  <Icon className="mb-2 h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                                  <span className="font-bold text-xs sm:text-sm">{type.label}</span>
-                                  <span className="text-[10px] text-muted-foreground leading-tight mt-1">{type.desc}</span>
-                                </Label>
-                              </div>
-                            );
-                          })}
-                        </RadioGroup>
-                      </div>
-                      <DialogFooter>
-                        <Button className="w-full text-sm" onClick={() => toast.success("Business type updated!")}>Save Changes</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-            </div>
-
-            <div>
-              <Label>Address Line 1</Label>
-              <Input
-                value={addressLine1}
-                onChange={(e) => setAddressLine1(e.target.value)}
-                placeholder="Street, building, locality"
-                className="text-sm"
-              />
-            </div>
-
-            {/* Country Selector */}
-            <div>
-              <Label>Country</Label>
-              <Popover open={countryOpen} onOpenChange={setCountryOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between text-sm"
-                  >
-                    {country || "Select country"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search country..."
-                      value={countrySearch}
-                      onValueChange={setCountrySearch}
-                    />
-                    <CommandList>
-                      <CommandEmpty>
-                        {loadingCountries ? "Loading..." : "No countries found."}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {(countryOptions || []).map((c) => (
-                          <CommandItem
-                            key={c.code}
-                            value={c.name}
-                            onSelect={() => {
-                              setCountry(c.name);
-                              setSelectedCountryCode(c.code);
-                              // Reset dependent fields
-                              setSelectedStateCode(null);
-                              setState("");
-                              setCity("");
-                              setCountryOpen(false);
-                            }}
-                            className="text-sm"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                country === c.name ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {c.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* State Selector */}
-            <div>
-              <Label>State</Label>
-              <Popover open={stateOpen} onOpenChange={setStateOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    disabled={!selectedCountryCode}
-                    className="w-full justify-between text-sm"
-                  >
-                    {state || "Select state"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search state..."
-                      value={stateSearch}
-                      onValueChange={setStateSearch}
-                    />
-                    <CommandList>
-                      <CommandEmpty>
-                        {loadingStates ? "Loading..." : "No states found."}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {(stateOptions || []).map((s) => (
-                          <CommandItem
-                            key={s.code}
-                            value={s.name}
-                            onSelect={() => {
-                              setState(s.name);
-                              setSelectedStateCode(s.code);
-                              setCity("");
-                              setStateOpen(false);
-                            }}
-                            className="text-sm"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                state === s.name ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {s.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* City Selector */}
-            <div>
-              <Label>City</Label>
-              <Popover open={cityOpen} onOpenChange={setCityOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    disabled={!selectedStateCode}
-                    className="w-full justify-between text-sm"
-                  >
-                    {city || "Select city"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search city..."
-                      value={citySearch}
-                      onValueChange={setCitySearch}
-                    />
-                    <CommandList>
-                      <CommandEmpty>
-                        {loadingCities ? "Loading..." : "No cities found."}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {(cityOptions || []).map((c) => (
-                          <CommandItem
-                            key={c.code}
-                            value={c.name}
-                            onSelect={() => {
-                              setCity(c.name);
-                              setCityOpen(false);
-                            }}
-                            className="text-sm"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                city === c.name ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {c.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div>
-              <Label>Postal Code</Label>
-              <Input
-                value={postalCode}
-                onChange={(e) => setPostalCode(e.target.value)}
-                className="text-sm"
-              />
-            </div>
-
-            {/* Currency Selector */}
-            <div>
-              <Label>Currency</Label>
-              <Popover open={currencyOpen} onOpenChange={setCurrencyOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between text-sm"
-                  >
-                    {currency || "Select currency"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search currency..."
-                      value={currencySearch}
-                      onValueChange={setCurrencySearch}
-                    />
-                    <CommandList>
-                      <CommandEmpty>
-                        {loadingCurrencies ? "Loading..." : "No currencies found."}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {(currencyOptions || []).map((c) => (
-                          <CommandItem
-                            key={c.code}
-                            value={c.code}
-                            onSelect={() => {
-                              setCurrency(c.symbol);
-                              setCurrencyOpen(false);
-                            }}
-                            className="text-sm"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                currency === c.symbol ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {c.symbol} • {c.name} ({c.code})
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="max-w-4xl w-full mx-auto px-2 sm:px-0 pb-6 sm:pb-8">
+        <div className="grid gap-4 sm:gap-6">
+          <Card>
+            <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-4">
+              <CardTitle>Business Profile</CardTitle>
+              {/* <CardDescription>
+                Update your restaurant details.
+              </CardDescription> */}
+            </CardHeader>
+            <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6 pb-4 sm:pb-6">
               <div>
-                <Label>GST %</Label>
+                <Label>Restaurant Name</Label>
                 <Input
-                  type="number"
-                  value={taxRateGst}
-                  onChange={(e) => setTaxRateGst(e.target.value)}
+                  value={restaurantName}
+                  onChange={(e) => setRestaurantName(e.target.value)}
                   className="text-sm"
                 />
               </div>
-              <div>
-                <Label>Service Tax %</Label>
-                <Input
-                  type="number"
-                  value={taxRateService}
-                  onChange={(e) => setTaxRateService(e.target.value)}
-                  className="text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t">
-              <h3 className="text-sm font-semibold text-muted-foreground">Contact & Regulatory Information</h3>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label>Email Address</Label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="restaurant@example.com"
-                    className="text-sm"
-                  />
-                </div>
-                <div>
-                  <Label>Phone Number</Label>
-                  <Input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label>GST Number</Label>
-                  <Input
-                    value={gstNumber}
-                    onChange={(e) => setGstNumber(e.target.value)}
-                    placeholder="22AAAAA0000A1Z5"
-                    className="text-sm"
-                  />
-                </div>
-                <div>
-                  <Label>FSSAI Number</Label>
-                  <Input
-                    value={fssaiNumber}
-                    onChange={(e) => setFssaiNumber(e.target.value)}
-                    placeholder="12345678901234"
-                    className="text-sm"
-                  />
-                </div>
-              </div>
 
               <div>
-                <Label>Google Maps Link</Label>
+                <Label>Public Menu Link (Slug)</Label>
                 <Input
-                  type="url"
-                  value={googleMapsLink}
-                  onChange={(e) => setGoogleMapsLink(e.target.value)}
-                  placeholder="https://maps.google.com/?q=..."
-                  className="text-sm"
+                  value={slug}
+                  onChange={(e) =>
+                    setSlug(
+                      e.target.value
+                        .toLowerCase()
+                        .replace(/\s+/g, "-")
+                        .replace(/[^a-z0-9-]/g, "")
+                        .replace(/-+/g, "-")
+                        .replace(/^-|-$/g, ""),
+                    )
+                  }
+                  placeholder="e.g. my-restaurant"
+                  className="text-sm font-mono"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Share link for directions to your restaurant
+                  {/* Your menu URL: <span className="font-mono">{typeof window !== 'undefined' ? window.location.origin : ''}/r/{slug || '—'}</span> */}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Slug must be unique. Use only lowercase letters, numbers and hyphens.
                 </p>
               </div>
-            </div>
 
-            <Button
-              onClick={handleSaveProfile}
-              disabled={updateRestaurant.isPending}
-              className="w-full"
-            >
-              {updateRestaurant.isPending ? "Saving..." : "Save Profile"}
-            </Button>
-          </CardContent>
-        </Card>
+              <div className="space-y-2">
+                <Label className="text-sm">Business Type</Label>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start font-normal h-10 text-sm">
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const selected = SHOP_TYPES.find(t => t.id === shopType);
+                          const TypeIcon = selected?.icon || Store;
+                          return <TypeIcon className="w-4 h-4 text-primary flex-shrink-0" />;
+                        })()}
+                        <span className="truncate">{SHOP_TYPES.find(t => t.id === shopType)?.label || "Select Type..."}</span>
+                      </div>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="text-lg sm:text-xl">Select Business Type</DialogTitle>
+                      <DialogDescription className="text-xs sm:text-sm">Choose the category that best describes your establishment.</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                      <RadioGroup value={shopType} onValueChange={setShopType} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {SHOP_TYPES.map((type) => {
+                          const Icon = type.icon;
+                          return (
+                            <div key={type.id}>
+                              <RadioGroupItem value={type.id} id={type.id} className="peer sr-only" />
+                              <Label
+                                htmlFor={type.id}
+                                className="flex flex-col h-full rounded-xl border-2 border-muted bg-popover p-3 sm:p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary transition-all cursor-pointer"
+                              >
+                                <Icon className="mb-2 h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                                <span className="font-bold text-xs sm:text-sm">{type.label}</span>
+                                <span className="text-[10px] text-muted-foreground leading-tight mt-1">{type.desc}</span>
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </RadioGroup>
+                    </div>
+                    <DialogFooter>
+                      <Button className="w-full text-sm" onClick={() => toast.success("Business type updated!")}>Save Changes</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div>
+                <Label>Address Line 1</Label>
+                <Input
+                  value={addressLine1}
+                  onChange={(e) => setAddressLine1(e.target.value)}
+                  placeholder="Street, building, locality"
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Country Selector */}
+              <div>
+                <Label>Country</Label>
+                <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between text-sm"
+                    >
+                      {country || "Select country"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search country..."
+                        value={countrySearch}
+                        onValueChange={setCountrySearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {loadingCountries ? "Loading..." : "No countries found."}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {(countryOptions || []).map((c) => (
+                            <CommandItem
+                              key={c.code}
+                              value={c.name}
+                              onSelect={() => {
+                                setCountry(c.name);
+                                setSelectedCountryCode(c.code);
+                                // Reset dependent fields
+                                setSelectedStateCode(null);
+                                setState("");
+                                setCity("");
+                                setCountryOpen(false);
+                              }}
+                              className="text-sm"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  country === c.name ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {c.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* State Selector */}
+              <div>
+                <Label>State</Label>
+                <Popover open={stateOpen} onOpenChange={setStateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      disabled={!selectedCountryCode}
+                      className="w-full justify-between text-sm"
+                    >
+                      {state || "Select state"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search state..."
+                        value={stateSearch}
+                        onValueChange={setStateSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {loadingStates ? "Loading..." : "No states found."}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {(stateOptions || []).map((s) => (
+                            <CommandItem
+                              key={s.code}
+                              value={s.name}
+                              onSelect={() => {
+                                setState(s.name);
+                                setSelectedStateCode(s.code);
+                                setCity("");
+                                setStateOpen(false);
+                              }}
+                              className="text-sm"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  state === s.name ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {s.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* City Selector */}
+              <div>
+                <Label>City</Label>
+                <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      disabled={!selectedStateCode}
+                      className="w-full justify-between text-sm"
+                    >
+                      {city || "Select city"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search city..."
+                        value={citySearch}
+                        onValueChange={setCitySearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {loadingCities ? "Loading..." : "No cities found."}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {(cityOptions || []).map((c) => (
+                            <CommandItem
+                              key={c.code}
+                              value={c.name}
+                              onSelect={() => {
+                                setCity(c.name);
+                                setCityOpen(false);
+                              }}
+                              className="text-sm"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  city === c.name ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {c.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <Label>Postal Code</Label>
+                <Input
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
+
+              {/* Currency Selector */}
+              <div>
+                <Label>Currency</Label>
+                <Popover open={currencyOpen} onOpenChange={setCurrencyOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between text-sm"
+                    >
+                      {currency || "Select currency"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search currency..."
+                        value={currencySearch}
+                        onValueChange={setCurrencySearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {loadingCurrencies ? "Loading..." : "No currencies found."}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {(currencyOptions || []).map((c) => (
+                            <CommandItem
+                              key={c.code}
+                              value={c.code}
+                              onSelect={() => {
+                                setCurrency(c.symbol);
+                                setCurrencyOpen(false);
+                              }}
+                              className="text-sm"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  currency === c.symbol ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {c.symbol} • {c.name} ({c.code})
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div>
+                  <Label>GST %</Label>
+                  <Input
+                    type="number"
+                    value={taxRateGst}
+                    onChange={(e) => setTaxRateGst(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+                <div>
+                  <Label>Service Tax %</Label>
+                  <Input
+                    type="number"
+                    value={taxRateService}
+                    onChange={(e) => setTaxRateService(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t mt-2">
+                <h3 className="text-sm font-semibold text-muted-foreground">Contact & Regulatory Information</h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <Label>Email Address</Label>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="restaurant@example.com"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label>Phone Number</Label>
+                    <Input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="+91 98765 43210"
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <Label>GST Number</Label>
+                    <Input
+                      value={gstNumber}
+                      onChange={(e) => setGstNumber(e.target.value)}
+                      placeholder="22AAAAA0000A1Z5"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label>FSSAI Number</Label>
+                    <Input
+                      value={fssaiNumber}
+                      onChange={(e) => setFssaiNumber(e.target.value)}
+                      placeholder="12345678901234"
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Google Maps Link</Label>
+                  <Input
+                    type="url"
+                    value={googleMapsLink}
+                    onChange={(e) => setGoogleMapsLink(e.target.value)}
+                    placeholder="https://maps.google.com/?q=..."
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Share link for directions to your restaurant
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleSaveProfile}
+                disabled={updateRestaurant.isPending}
+                className="w-full"
+              >
+                {updateRestaurant.isPending ? "Saving..." : "Save Profile"}
+              </Button>
+            </CardContent>
+          </Card>
 
           {restaurantId && (
-            <LogoSelector 
+            <LogoSelector
               restaurantId={restaurantId}
               restaurantType={shopType}
             />
-           )}
+          )}
 
           <Card>
-            <CardHeader className="px-4 sm:px-6">
+            <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-4">
               <div className="flex items-center gap-2">
                 <Languages className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 <CardTitle className="text-lg sm:text-xl">Language Support</CardTitle>
               </div>
               <CardDescription className="text-xs sm:text-sm">Enable multiple languages for your digital menu.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
+            <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6 pb-4 sm:pb-6">
               <div className="flex items-center justify-between p-3 sm:p-4 bg-muted/30 rounded-lg">
                 <div className="space-y-0.5">
                   <p className="font-medium text-sm sm:text-base">English (Default)</p>
@@ -736,13 +731,13 @@ export default function SettingsPage() {
           </Card>
 
           <Card>
-            <CardHeader className="px-4 sm:px-6">
+            <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-4">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 <CardTitle className="text-lg sm:text-xl">Notifications</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4 px-4 sm:px-6">
+            <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6 pb-4 sm:pb-6">
               <div className="flex items-center justify-between">
                 <Label className="text-sm sm:text-base">Email reports</Label>
                 <Switch

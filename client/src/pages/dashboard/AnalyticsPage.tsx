@@ -1,15 +1,15 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell, Legend
 } from "recharts";
-import { 
-  TrendingUp, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Clock, 
-  Users, 
+import {
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  Clock,
+  Users,
   Calendar,
   DollarSign,
   Trophy,
@@ -36,7 +36,7 @@ export default function AnalyticsPage() {
   const { user } = useAuth();
   const { restaurantId } = useAuth();
 
-    
+
   const { data: analytics, isLoading } = useAnalyticsOverview(restaurantId, timeframe);
 
   if (isLoading) {
@@ -67,13 +67,13 @@ export default function AnalyticsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 className="text-3xl font-heading font-bold">Analytics</h2>
-            <p className="text-muted-foreground">Deep insights into your restaurant's performance.</p>
-          </div>
-          
+      <div className="space-y-4 sm:space-y-8 min-w-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+          {/* <div> */}
+          {/* <h2 className="text-3xl font-heading font-bold">Analytics</h2> */}
+          {/* <p className="text-muted-foreground">Deep insights into your restaurant's performance.</p> */}
+          {/* </div> */}
+
           <Select value={timeframe} onValueChange={(val: any) => setTimeframe(val)}>
             <SelectTrigger className="w-[180px] bg-white border-primary/20 shadow-sm">
               <Calendar className="w-4 h-4 mr-2 text-primary" />
@@ -88,21 +88,21 @@ export default function AnalyticsPage() {
           </Select>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          <Card className="shadow-sm border-primary/10 bg-gradient-to-br from-white to-slate-50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3 xl:grid-cols-5 mb-4 sm:mb-8">
+          <Card className="shadow-sm border-primary/10 hover:shadow-md transition-shadow bg-gradient-to-br from-white to-slate-50 min-w-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
+              <CardTitle className="text-[11px] leading-4 sm:text-sm font-medium text-muted-foreground truncate pr-2">
                 Total Revenue
-                <DollarSign className="w-4 h-4 text-primary" />
               </CardTitle>
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold font-mono">
+            <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+              <div className="text-base sm:text-2xl font-bold font-heading leading-tight break-words font-mono">
                 ₹{totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
               <p
                 className={cn(
-                  "text-xs font-bold flex items-center mt-2",
+                  "text-[11px] sm:text-xs font-bold flex items-center mt-1 break-words",
                   revenueChange >= 0 ? "text-green-600" : "text-red-600"
                 )}
               >
@@ -115,19 +115,21 @@ export default function AnalyticsPage() {
               </p>
             </CardContent>
           </Card>
-          
-          <Card className="shadow-sm border-primary/10">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+
+          <Card className="shadow-sm border-primary/10 hover:shadow-md transition-shadow min-w-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
+              <CardTitle className="text-[11px] leading-4 sm:text-sm font-medium text-muted-foreground truncate pr-2">
                 Paid Orders
-                <Users className="w-4 h-4 text-primary" />
               </CardTitle>
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics.kpis.paidOrders.toLocaleString()}</div>
+            <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+              <div className="text-base sm:text-2xl font-bold font-heading leading-tight break-words">
+                {analytics.kpis.paidOrders.toLocaleString()}
+              </div>
               <p
                 className={cn(
-                  "text-xs font-bold flex items-center mt-2",
+                  "text-[11px] sm:text-xs font-bold flex items-center mt-1 break-words",
                   analytics.kpis.paidOrdersChangePercent >= 0 ? "text-green-600" : "text-red-600"
                 )}
               >
@@ -141,32 +143,36 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-primary/10">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+          <Card className="shadow-sm border-primary/10 hover:shadow-md transition-shadow min-w-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
+              <CardTitle className="text-[11px] leading-4 sm:text-sm font-medium text-muted-foreground truncate pr-2">
                 Peak Hours
-                <Clock className="w-4 h-4 text-primary" />
               </CardTitle>
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{peakHoursText}</div>
-              <p className="text-xs text-blue-600 font-bold flex items-center mt-2">
+            <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+              <div className="text-base sm:text-2xl font-bold font-heading leading-tight break-words">
+                {peakHoursText}
+              </div>
+              <p className="text-[11px] sm:text-xs text-blue-600 font-bold flex items-center mt-1 break-words">
                 Highest footfall
               </p>
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-primary/10">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+          <Card className="shadow-sm border-primary/10 hover:shadow-md transition-shadow min-w-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
+              <CardTitle className="text-[11px] leading-4 sm:text-sm font-medium text-muted-foreground truncate pr-2">
                 Avg Order Value
-                <TrendingUp className="w-4 h-4 text-primary" />
               </CardTitle>
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">₹{avgOrderValue}</div>
+            <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+              <div className="text-base sm:text-2xl font-bold font-heading leading-tight break-words">
+                ₹{avgOrderValue}
+              </div>
               <p className={cn(
-                "text-xs font-bold flex items-center mt-2",
+                "text-[11px] sm:text-xs font-bold flex items-center mt-1 break-words",
                 Number(growthPercent) >= 0 ? "text-green-600" : "text-red-600"
               )}>
                 {Number(growthPercent) >= 0 ? (
@@ -179,27 +185,29 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-primary/10">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+          <Card className="shadow-sm border-primary/10 hover:shadow-md transition-shadow min-w-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
+              <CardTitle className="text-[11px] leading-4 sm:text-sm font-medium text-muted-foreground truncate pr-2">
                 Table Turnover
-                <Clock className="w-4 h-4 text-primary" />
               </CardTitle>
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics.kpis.tableTurnoverMinutes} mins</div>
-              <p className="text-xs text-slate-500 font-bold flex items-center mt-2">
+            <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+              <div className="text-base sm:text-2xl font-bold font-heading leading-tight break-words">
+                {analytics.kpis.tableTurnoverMinutes} mins
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-500 font-bold flex items-center mt-1 break-words">
                 Optimal range
               </p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
-            <CardHeader>
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2 min-w-0">
+            <CardHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                   Revenue Trends ({timeframe.charAt(0).toUpperCase() + timeframe.slice(1)})
                 </CardTitle>
               </div>
@@ -209,62 +217,62 @@ export default function AnalyticsPage() {
                 <AreaChart data={analytics.revenueSeries.points}>
                   <defs>
                     <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fill: '#94a3b8', fontSize: 12}}
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                     dy={10}
                   />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fill: '#94a3b8', fontSize: 12}}
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                     tickFormatter={(value) => `₹${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
                   />
                   <Tooltip
                     formatter={(value: any) => `₹${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="total" 
-                    stroke="hsl(var(--primary))" 
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    stroke="hsl(var(--primary))"
                     strokeWidth={3}
-                    fillOpacity={1} 
-                    fill="url(#colorTotal)" 
+                    fillOpacity={1}
+                    fill="url(#colorTotal)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-500" /> Top Dishes
+          <Card className="min-w-0">
+            <CardHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Trophy className="w-5 h-5 text-yellow-500 shrink-0" /> <span className="truncate">Top Dishes</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
+            <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+              <div className="space-y-4 sm:space-y-6">
                 {analytics.topItems.map((dish, index) => (
-                  <div key={dish.name} className="flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
+                  <div key={dish.name} className="flex items-center justify-between group gap-2 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm",
-                        index === 0 ? "bg-yellow-100 text-yellow-700" : 
-                        index === 1 ? "bg-slate-100 text-slate-700" : "bg-orange-50 text-orange-700"
+                        "w-6 h-6 sm:w-8 sm:h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-xs sm:text-sm",
+                        index === 0 ? "bg-yellow-100 text-yellow-700" :
+                          index === 1 ? "bg-slate-100 text-slate-700" : "bg-orange-50 text-orange-700"
                       )}>
                         {index + 1}
                       </div>
-                      <div>
-                        <p className="font-bold text-sm group-hover:text-primary transition-colors">{dish.name}</p>
-                        <p className="text-xs text-muted-foreground">{dish.orders.toLocaleString()} orders</p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm group-hover:text-primary transition-colors truncate">{dish.name}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{dish.orders.toLocaleString()} orders</p>
                         <p className="text-[11px] text-muted-foreground/80">₹{dish.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                       </div>
                     </div>
@@ -287,12 +295,12 @@ export default function AnalyticsPage() {
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Sales by Category</CardTitle>
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+          <Card className="min-w-0">
+            <CardHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+              <CardTitle className="text-base sm:text-lg">Sales by Category</CardTitle>
             </CardHeader>
-            <CardContent className="h-[300px] flex items-center">
+            <CardContent className="h-[250px] sm:h-[300px] flex items-center px-2 sm:px-6">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -313,18 +321,18 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Peak Traffic Volume</CardTitle>
+          <Card className="min-w-0">
+            <CardHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+              <CardTitle className="text-base sm:text-lg">Peak Traffic Volume</CardTitle>
             </CardHeader>
-            <CardContent className="h-[300px]">
+            <CardContent className="h-[250px] sm:h-[300px] px-2 sm:px-6">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={analytics.trafficVolume}>
-                  <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11}} />
-                  <Tooltip cursor={{fill: 'transparent'}} />
-                  <Bar 
-                    dataKey="count" 
-                    fill="hsl(var(--primary))" 
+                  <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                  <Tooltip cursor={{ fill: 'transparent' }} />
+                  <Bar
+                    dataKey="count"
+                    fill="hsl(var(--primary))"
                     radius={[4, 4, 0, 0]}
                     barSize={30}
                   />
