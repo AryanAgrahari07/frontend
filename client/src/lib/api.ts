@@ -1,5 +1,5 @@
 /**
- * API client for Qrave backend.
+ * API client for OrderJi backend.
  * - Access token is stored via Capacitor Preferences (native on iOS/Android, localStorage on web).
  * - Refresh token is stored as HttpOnly cookie on web; on mobile it can be stored in native secure storage.
  * - Includes a 401 interceptor that silently calls /api/auth/refresh and retries once.
@@ -11,8 +11,8 @@ import { secureStorage } from "@/lib/secureStorage";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-const TOKEN_KEY = "qrave_token";
-const REFRESH_TOKEN_KEY = "qrave_refresh_token";
+const TOKEN_KEY = "orderji_token";
+const REFRESH_TOKEN_KEY = "orderji_refresh_token";
 
 export async function getStoredToken(): Promise<string | null> {
   const { value } = await preferences.get({ key: TOKEN_KEY });
@@ -26,6 +26,7 @@ export async function setStoredToken(token: string | null): Promise<void> {
 
 // Legacy (pre-refresh architecture) localStorage key: migrate once if present.
 export async function migrateLegacyTokenIfNeeded(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
   const legacy = localStorage.getItem(TOKEN_KEY);
   if (!legacy) return;
   const existing = await getStoredToken();
@@ -103,7 +104,7 @@ async function refreshAccessToken(): Promise<void> {
 
         // Notify app-level auth state to reset UI immediately.
         if (typeof window !== "undefined") {
-          window.dispatchEvent(new Event("qrave_auth_expired"));
+          window.dispatchEvent(new Event("orderji_auth_expired"));
         }
 
         throw new Error("Session expired");
@@ -123,20 +124,42 @@ async function refreshAccessToken(): Promise<void> {
   return refreshPromise;
 }
 
-async function request<T>(method: string, path: string, data?: unknown, retry = true): Promise<T> {
-  const res = await fetch(buildUrl(path), {
-    method,
-    headers: await getHeaders(!!data),
-    credentials: "include",
-    body: data ? JSON.stringify(data) : undefined,
-  });
+// R1: Network level retry backoff utility
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  if (res.status === 401 && retry) {
-    await refreshAccessToken();
-    return request<T>(method, path, data, false);
+async function request<T>(method: string, path: string, data?: unknown, retry = true, attempt = 1): Promise<T> {
+  try {
+    const res = await fetch(buildUrl(path), {
+      method,
+      headers: await getHeaders(!!data),
+      credentials: "include",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+
+    if (res.status === 401 && retry) {
+      await refreshAccessToken();
+      return request<T>(method, path, data, false);
+    }
+
+    // Only retry on network errors (fetch fail) or 50x server errors
+    if (res.status >= 500 && attempt < 3) {
+      const backoffDelay = Math.min(1000 * Math.pow(2, attempt), 5000);
+      console.warn(`[api] server error ${res.status} on ${path}, retrying in ${backoffDelay}ms (attempt ${attempt}/3)`);
+      await wait(backoffDelay);
+      return request<T>(method, path, data, retry, attempt + 1);
+    }
+
+    return handleResponse<T>(res);
+  } catch (err: any) {
+    if (err instanceof ApiError) throw err; // Don't retry client logic errors
+    if (attempt < 3 && method === "GET") { // Only safely retry GETs on network split
+      const backoffDelay = Math.min(1000 * Math.pow(2, attempt), 5000);
+      console.warn(`[api] network error on ${path}, retrying in ${backoffDelay}ms (attempt ${attempt}/3)`);
+      await wait(backoffDelay);
+      return request<T>(method, path, data, retry, attempt + 1);
+    }
+    throw err;
   }
-
-  return handleResponse<T>(res);
 }
 
 async function requestBlob(path: string, retry = true): Promise<Blob> {

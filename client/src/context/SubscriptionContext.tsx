@@ -7,6 +7,7 @@ type Subscription = {
     plan: string;
     subscriptionValidUntil: string | null;
     subscriptionStatus: "ACTIVE" | "EXPIRED" | "GRACE_PERIOD" | "PENDING";
+    isEligibleForTrial?: boolean;
 };
 
 type SubscriptionContextValue = {

@@ -61,9 +61,8 @@ export default function OnboardingPage() {
   });
 
   const PLANS = [
-    { name: "STARTER", displayName: "Starter", price: serverPlans?.STARTER?.amount ? `₹${serverPlans.STARTER.amount}/mo` : "Free", features: ["10 Menu Items", "Basic QR Codes", "Email Support"] },
-    { name: "PRO", displayName: "Pro", price: serverPlans?.PRO?.amount ? `₹${serverPlans.PRO.amount}/mo` : "₹2,999/mo", features: ["Unlimited Items", "Custom Branding", "Analytics Dashboard", "Priority Support"], popular: true },
-    { name: "ENTERPRISE", displayName: "Enterprise", price: serverPlans?.ENTERPRISE?.amount ? `₹${serverPlans.ENTERPRISE.amount}/mo` : "₹9,999/mo", features: ["Multi-location", "API Access", "Dedicated Manager", "Custom Integrations"] },
+    { name: "STARTER", displayName: "Starter Trial (7 Days)", price: serverPlans?.STARTER?.amount ? `₹${serverPlans.STARTER.amount}/mo` : "Free", features: ["Full System Access", "Explore All Features", "1-Time Usage Per Restaurant"] },
+    { name: "PRO", displayName: "Pro", price: serverPlans?.PRO?.amount ? `₹${serverPlans.PRO.amount}/mo` : "₹700/mo", features: ["Unlimited Items", "Custom Branding", "Analytics Dashboard", "Priority Support"], popular: true },
   ];
 
   const [formData, setFormData] = useState<OnboardingData>({
@@ -78,15 +77,43 @@ export default function OnboardingPage() {
     tableCount: 6,
   });
 
-  // Validate current step
-  const canProceed = () => {
-    if (step === 1) {
-      return formData.email && formData.password && formData.fullName && formData.restaurantName && formData.slug;
-    }
-    if (step === 2) {
-      return !!formData.plan;
-    }
-    return true;
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const validateField = (field: keyof OnboardingData, value: any) => {
+    setFieldErrors(prev => {
+      const newErrors = { ...prev };
+      switch (field) {
+        case 'fullName':
+          if (!value.trim()) newErrors.fullName = "Full name is required";
+          else delete newErrors.fullName;
+          break;
+        case 'email':
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!value.trim()) newErrors.email = "Email is required";
+          else if (!emailRegex.test(value)) newErrors.email = "Please enter a valid email address";
+          else delete newErrors.email;
+          break;
+        case 'password':
+          if (value.length < 6) newErrors.password = "Password must be at least 6 characters";
+          else delete newErrors.password;
+          break;
+        case 'restaurantName':
+          if (value.trim().length < 2) newErrors.restaurantName = "Restaurant name must be at least 2 characters";
+          else delete newErrors.restaurantName;
+          break;
+        case 'slug':
+          if (value.trim().length < 2) newErrors.slug = "URL handle must be at least 2 characters";
+          else if (!/^[a-z0-9-]+$/.test(value)) newErrors.slug = "Slug must contain only lowercase letters, numbers, and hyphens";
+          else delete newErrors.slug;
+          break;
+      }
+      return newErrors;
+    });
+  };
+
+  const handleChange = (field: keyof OnboardingData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    validateField(field, value);
   };
 
   // Generate slug from restaurant name
@@ -98,11 +125,27 @@ export default function OnboardingPage() {
   };
 
   const handleRestaurantNameChange = (name: string) => {
-    setFormData({
-      ...formData,
+    const slug = generateSlug(name);
+    setFormData(prev => ({
+      ...prev,
       restaurantName: name,
-      slug: generateSlug(name),
-    });
+      slug,
+    }));
+    validateField('restaurantName', name);
+    validateField('slug', slug);
+  };
+
+  // Validate current step
+  const canProceed = () => {
+    if (step === 1) {
+      if (!formData.email || !formData.password || !formData.fullName || !formData.restaurantName || !formData.slug) return false;
+      if (Object.keys(fieldErrors).length > 0) return false;
+      return true;
+    }
+    if (step === 2) {
+      return !!formData.plan;
+    }
+    return true;
   };
 
   const handleSubmit = async () => {
@@ -142,7 +185,7 @@ export default function OnboardingPage() {
         });
 
         if (isNative && response.refreshToken) {
-          await secureStorage.set("qrave_refresh_token", response.refreshToken);
+          await secureStorage.set("orderji_refresh_token", response.refreshToken);
         }
 
         // Update auth context with new user
@@ -176,7 +219,7 @@ export default function OnboardingPage() {
             key: order.keyId,
             amount: order.amount * 100,
             currency: order.currency,
-            name: "Qrave",
+            name: "OrderJi",
             description: `${formData.plan} Subscription`,
             order_id: order.razorpayOrderId,
             handler: async (paymentResponse: any) => {
@@ -186,7 +229,7 @@ export default function OnboardingPage() {
                   razorpayPaymentId: paymentResponse.razorpay_payment_id,
                   razorpaySignature: paymentResponse.razorpay_signature,
                 });
-                toast.success("Welcome to Qrave! Payment successful.");
+                toast.success("Welcome to OrderJi! Payment successful.");
                 setIsSubmitting(false);
                 queryClient.invalidateQueries({ queryKey: ["subscription"] });
                 setLocation("/dashboard");
@@ -221,7 +264,7 @@ export default function OnboardingPage() {
           setIsSubmitting(false);
         }
       } else {
-        toast.success("Welcome to Qrave! Your restaurant is ready.");
+        toast.success("Welcome to OrderJi! Your restaurant is ready.");
         setIsSubmitting(false);
         setLocation("/dashboard");
       }
@@ -296,9 +339,11 @@ export default function OnboardingPage() {
                       <Input
                         placeholder="John Doe"
                         value={formData.fullName}
-                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                        className="h-11"
+                        onChange={(e) => handleChange('fullName', e.target.value)}
+                        onBlur={() => validateField('fullName', formData.fullName)}
+                        className={cn("h-11", fieldErrors.fullName && "border-destructive focus-visible:ring-destructive")}
                       />
+                      {fieldErrors.fullName && <p className="text-xs text-destructive">{fieldErrors.fullName}</p>}
                     </div>
                     <div className="space-y-2.5">
                       <Label className="text-sm font-medium">Email Address *</Label>
@@ -306,9 +351,11 @@ export default function OnboardingPage() {
                         type="email"
                         placeholder="john@restaurant.com"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="h-11"
+                        onChange={(e) => handleChange('email', e.target.value)}
+                        onBlur={() => validateField('email', formData.email)}
+                        className={cn("h-11", fieldErrors.email && "border-destructive focus-visible:ring-destructive")}
                       />
+                      {fieldErrors.email && <p className="text-xs text-destructive">{fieldErrors.email}</p>}
                     </div>
                   </div>
 
@@ -318,9 +365,11 @@ export default function OnboardingPage() {
                       type="password"
                       placeholder="Min 6 characters"
                       value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="h-11 max-w-md"
+                      onChange={(e) => handleChange('password', e.target.value)}
+                      onBlur={() => validateField('password', formData.password)}
+                      className={cn("h-11 max-w-md", fieldErrors.password && "border-destructive focus-visible:ring-destructive")}
                     />
+                    {fieldErrors.password && <p className="text-xs text-destructive">{fieldErrors.password}</p>}
                   </div>
 
                   <div className="border-t pt-6 mt-6">
@@ -331,21 +380,28 @@ export default function OnboardingPage() {
                           placeholder="e.g. The Golden Spoon"
                           value={formData.restaurantName}
                           onChange={(e) => handleRestaurantNameChange(e.target.value)}
-                          className="h-11"
+                          onBlur={() => validateField('restaurantName', formData.restaurantName)}
+                          className={cn("h-11", fieldErrors.restaurantName && "border-destructive focus-visible:ring-destructive")}
                         />
+                        {fieldErrors.restaurantName && <p className="text-xs text-destructive">{fieldErrors.restaurantName}</p>}
                       </div>
                       <div className="space-y-2.5">
                         <Label className="text-sm font-medium">URL Handle *</Label>
-                        <div className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 items-center transition-all">
-                          <span className="text-muted-foreground mr-1.5 font-medium select-none hidden sm:inline">qrave.app/r/</span>
+                        <div className={cn(
+                          "flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 items-center transition-all",
+                          fieldErrors.slug && "border-destructive focus-within:ring-destructive"
+                        )}>
+                          <span className="text-muted-foreground mr-1.5 font-medium select-none hidden sm:inline">orderji.app/r/</span>
                           <span className="text-muted-foreground mr-1.5 font-medium select-none sm:hidden">/r/</span>
                           <input
                             className="flex-1 bg-transparent border-none outline-none focus:ring-0 p-0 text-sm font-medium w-full"
                             placeholder="golden-spoon"
                             value={formData.slug}
-                            onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                            onChange={(e) => handleChange('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                            onBlur={() => validateField('slug', formData.slug)}
                           />
                         </div>
+                        {fieldErrors.slug && <p className="text-xs text-destructive">{fieldErrors.slug}</p>}
                       </div>
                     </div>
 
@@ -380,7 +436,7 @@ export default function OnboardingPage() {
                   <h2 className="text-2xl sm:text-3xl font-heading font-bold tracking-tight">Select a plan</h2>
                   <p className="text-muted-foreground">Scale as you grow. Start for free and upgrade anytime.</p>
                 </div>
-                <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto w-full">
+                <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
                   {PLANS.map((plan) => (
                     <div
                       key={plan.name}
@@ -429,7 +485,7 @@ export default function OnboardingPage() {
               <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
                 <div className="text-center space-y-2">
                   <h2 className="text-2xl sm:text-3xl font-heading font-bold tracking-tight">Configure space</h2>
-                  <p className="text-muted-foreground">Set up your tables and currency to generate your QR codes.</p>
+                  <p className="text-muted-foreground">Set up your tables to generate your QR codes.</p>
                 </div>
                 <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8 lg:gap-12">
                   <div className="space-y-8">
@@ -457,26 +513,6 @@ export default function OnboardingPage() {
                       </p>
                     </div>
 
-                    <div className="space-y-4">
-                      <Label className="text-sm font-medium text-foreground">Currency Symbol</Label>
-                      <div className="flex flex-wrap gap-2.5 sm:gap-3">
-                        {["₹", "$", "€", "£"].map((curr) => (
-                          <button
-                            key={curr}
-                            type="button"
-                            onClick={() => setFormData({ ...formData, currency: curr })}
-                            className={cn(
-                              "w-12 h-12 sm:w-14 sm:h-14 rounded-xl border-2 font-bold text-xl transition-all duration-200 flex items-center justify-center",
-                              formData.currency === curr
-                                ? "bg-primary text-primary-foreground border-primary shadow-md"
-                                : "bg-background border-border text-foreground hover:border-primary/40 hover:bg-muted"
-                            )}
-                          >
-                            {curr}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
                   </div>
 
                   {/* Summary */}

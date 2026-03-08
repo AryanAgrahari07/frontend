@@ -23,7 +23,10 @@ export function ProtectedRoute({ children, requiredRole, redirectTo = "/auth", r
       return;
     }
 
-    if (requiredRole && !requiredRole.includes(user.role)) {
+    const userRoleLower = user?.role?.toLowerCase() || "";
+    const allowedRolesLower = requiredRole?.map((r) => r.toLowerCase()) || [];
+
+    if (requiredRole && !allowedRolesLower.includes(userRoleLower)) {
       setLocation("/dashboard");
     }
   }, [user, isReady, requiredRole, redirectTo, setLocation]);
@@ -36,7 +39,10 @@ export function ProtectedRoute({ children, requiredRole, redirectTo = "/auth", r
     );
   }
 
-  if (!user || (requiredRole && !requiredRole.includes(user.role))) {
+  const userRoleLower = user?.role?.toLowerCase() || "";
+  const allowedRolesLower = requiredRole?.map((r) => r.toLowerCase()) || [];
+
+  if (!user || (requiredRole && !allowedRolesLower.includes(userRoleLower))) {
     return null;
   }
 

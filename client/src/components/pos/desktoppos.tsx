@@ -50,6 +50,7 @@ import {
 import { ItemCustomizationContent } from "@/components/menu/ItemcustomizationContent";
 import { useLanguage } from "@/context/LanguageContext";
 import { getTranslatedName } from "@/context/LanguageContext";
+import { toast } from "sonner";
 
 type POSMode = "full" | "waiter";
 
@@ -167,6 +168,14 @@ export function DesktopPOS({
 }: DesktopPOSProps) {
   const { language } = useLanguage();
   const isWaiterMode = mode === "waiter";
+
+  const handleActionClick = (callback?: () => void) => {
+    if (orderMethod === "dine-in" && (!selectedTableId || selectedTableId === "none")) {
+      toast.error("Please select table for the dine in order");
+      return;
+    }
+    callback?.();
+  };
 
   const discountNum = Math.max(0, parseFloat(discountAmount || "0") || 0);
 
@@ -453,7 +462,7 @@ export function DesktopPOS({
                   <div className="flex items-center justify-end gap-1.5 sm:gap-2">
                     {!isWaiterMode && (
                       <Button
-                        onClick={onSave!}
+                        onClick={() => handleActionClick(onSave)}
                         variant="outline"
                         disabled={manualCart.length === 0}
                         size="sm"
@@ -465,18 +474,18 @@ export function DesktopPOS({
                     )}
                     {!isWaiterMode && (
                       <Button
-                        onClick={onSaveAndPrint!}
+                        onClick={() => handleActionClick(onSaveAndPrint)}
                         variant="outline"
                         disabled={manualCart.length === 0}
                         size="sm"
                         className="hover:bg-gray-100 text-[11px] sm:text-xs h-8 sm:h-9"
                       >
                         <Printer className="size-3 sm:size-3.5 sm:mr-1.5" />
-                        <span className="hidden sm:inline">Print</span>
+                        <span className="hidden sm:inline">KOT Print</span>
                       </Button>
                     )}
                     <Button
-                      onClick={onSendToKitchen}
+                      onClick={() => handleActionClick(onSendToKitchen)}
                       disabled={manualCart.length === 0 || isLoading}
                       size="sm"
                       className="bg-primary hover:bg-primary/90 text-white px-3 sm:px-6 text-[11px] sm:text-xs h-8 sm:h-9"

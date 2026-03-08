@@ -40,6 +40,7 @@ import { useThermalPrinter } from "@/hooks/useThermalPrinter";
 import { BillData } from "@/lib/thermal-printer-utils";
 import { WhatsAppBillFormatter, validateIndianPhoneNumber } from "@/lib/whatsapp-bill";
 import { jsPDF } from "jspdf";
+import { subDays, format, isBefore, startOfDay } from "date-fns";
 
 function mergeSameOrderItems<T extends { itemName: string; quantity: number; totalPrice: string }>(
   items: (T & {
@@ -110,6 +111,12 @@ export default function TransactionsPage() {
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
   const [isBillDialogOpen, setIsBillDialogOpen] = useState(false);
 
+  // Export Dialog state
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [exportOption, setExportOption] = useState<string>("current");
+  const [customExportStart, setCustomExportStart] = useState("");
+  const [customExportEnd, setCustomExportEnd] = useState("");
+
   const limit = 20;
   const offset = (page - 1) * limit;
 
@@ -156,10 +163,52 @@ export default function TransactionsPage() {
   const pagination = data?.pagination;
 
   const handleExportCSV = () => {
+    let exportFromDate = undefined;
+    let exportToDate = undefined;
+
+    const today = new Date();
+
+    switch (exportOption) {
+      case "current":
+        exportFromDate = fromDate || undefined;
+        exportToDate = toDate || undefined;
+        break;
+      case "7days":
+        exportFromDate = format(subDays(today, 7), 'yyyy-MM-dd');
+        break;
+      case "30days":
+        exportFromDate = format(subDays(today, 30), 'yyyy-MM-dd');
+        break;
+      case "90days":
+        exportFromDate = format(subDays(today, 90), 'yyyy-MM-dd');
+        break;
+      case "custom":
+        if (!customExportStart || !customExportEnd) {
+          toast.error("Please select both start and end dates");
+          return;
+        }
+        
+        const startDate = new Date(customExportStart);
+        const maxPastDate = subDays(today, 90);
+        
+        if (isBefore(startDate, startOfDay(maxPastDate))) {
+          toast.error("Start date cannot be older than 90 days");
+          return;
+        }
+
+        exportFromDate = customExportStart;
+        exportToDate = customExportEnd;
+        break;
+    }
+
     exportCSV.mutate({
-      fromDate: fromDate || undefined,
-      toDate: toDate || undefined,
+      fromDate: exportFromDate,
+      toDate: exportToDate,
       paymentMethod: paymentFilter || undefined,
+    }, {
+      onSuccess: () => {
+        setIsExportDialogOpen(false);
+      }
     });
   };
 
@@ -767,20 +816,89 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
                       <span className="sm:hidden truncate">Bills ({pagination?.total || 0})</span>
                     </CardTitle>
 
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 shrink-0 ml-auto"
-                      onClick={handleExportCSV}
-                      disabled={exportCSV.isPending}
-                      title="Export CSV"
-                    >
-                      {exportCSV.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4" />
-                      )}
-                    </Button>
+                    <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="h-8 shrink-0 ml-auto gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          <span className="hidden sm:inline">Export</span>
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Export Transactions</DialogTitle>
+                          <DialogDescription>
+                            Select the date range for your CSV export.
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="grid gap-4 py-4">
+                          <Select value={exportOption} onValueChange={setExportOption}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select timeframe" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="current">Current Page Data/Filters</SelectItem>
+                              <SelectItem value="7days">Last 7 Days</SelectItem>
+                              <SelectItem value="30days">Last 30 Days</SelectItem>
+                              <SelectItem value="90days">Last 90 Days</SelectItem>
+                              <SelectItem value="custom">Custom Date Range</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          {exportOption === "custom" && (
+                            <div className="grid grid-cols-2 gap-4 animate-in fade-in zoom-in duration-200">
+                              <div className="space-y-2">
+                                <Label htmlFor="start-date">Start Date (Max 90 days ago)</Label>
+                                <Input 
+                                  id="start-date" 
+                                  type="date"
+                                  value={customExportStart}
+                                  onChange={(e) => setCustomExportStart(e.target.value)}
+                                  min={format(subDays(new Date(), 90), 'yyyy-MM-dd')}
+                                  max={format(new Date(), 'yyyy-MM-dd')}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="end-date">End Date</Label>
+                                <Input 
+                                  id="end-date" 
+                                  type="date"
+                                  value={customExportEnd}
+                                  onChange={(e) => setCustomExportEnd(e.target.value)}
+                                  min={customExportStart || undefined}
+                                  max={format(new Date(), 'yyyy-MM-dd')}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <DialogFooter>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setIsExportDialogOpen(false)}
+                            disabled={exportCSV.isPending}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={handleExportCSV} 
+                            disabled={exportCSV.isPending}
+                            className="gap-2"
+                          >
+                            {exportCSV.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
+                            Download CSV
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
 
                   {/* Search Bar */}

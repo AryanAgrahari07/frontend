@@ -4,9 +4,11 @@ import { preferences } from "@/lib/preferences";
 import { api, migrateLegacyTokenIfNeeded, setStoredToken } from "@/lib/api";
 import { secureStorage } from "@/lib/secureStorage";
 
-const RESTAURANT_ID_KEY = "qrave_restaurant_id";
-const AUTH_CACHE_KEY = "qrave_auth_cache";
-const REFRESH_TOKEN_KEY = "qrave_refresh_token";
+import { useRestaurantWebSocket } from "@/hooks/useRestaurantWebSocket";
+
+const RESTAURANT_ID_KEY = "orderji_restaurant_id";
+const AUTH_CACHE_KEY = "orderji_auth_cache";
+const REFRESH_TOKEN_KEY = "orderji_refresh_token";
 
 type User = { id: string; email: string; fullName?: string; role: string; restaurantId?: string | null };
 
@@ -22,11 +24,23 @@ type AuthContextValue = AuthState & {
   login: (email: string, password: string) => Promise<{ user: User }>;
   staffLogin: (staffCode: string, passcode: string) => Promise<{ user: User }>;
   logout: () => Promise<void>;
-  setRestaurantId: (id: string | null ) => void;
+  setRestaurantId: (id: string | null) => void;
   onboardingComplete: (data: { user: User; token: string; refreshToken?: string; restaurant: { id: string } }) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+// Global WebSocket Listener to keep connection alive when authenticated (C1)
+function GlobalWebSocketListener({
+  restaurantId,
+  token
+}: {
+  restaurantId: string | null;
+  token: string | null
+}) {
+  useRestaurantWebSocket(restaurantId || "", token, { enabled: !!restaurantId });
+  return null;
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -63,14 +77,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       setState((s) => ({ ...s, user: res.user, token: res.token, isLoading: false }));
-      
+
       // Fetch restaurants - IMPORTANT: This needs to happen AFTER the token is stored
       // so the api.get call includes the Authorization header
       try {
         console.log("Fetching restaurants for user:", res.user.id);
         const { restaurants } = await api.get<{ restaurants: { id: string; name: string; slug: string }[] }>("/api/restaurants");
         console.log("Fetched restaurants:", restaurants);
-        
+
         if (restaurants?.length) {
           setRestaurantId(restaurants[0].id);
           console.log("Set restaurant ID:", restaurants[0].id);
@@ -84,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Restaurant fetch error status:", error.status);
         }
       }
-      
+
       return { user: res.user };
     } catch (e) {
       setState((s) => ({ ...s, isLoading: false }));
@@ -175,8 +189,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })();
     };
 
-    window.addEventListener("qrave_auth_expired", handler);
-    return () => window.removeEventListener("qrave_auth_expired", handler);
+    window.addEventListener("orderji_auth_expired", handler);
+    return () => window.removeEventListener("orderji_auth_expired", handler);
   }, []);
 
   // Init: optimistic boot from cache, then validate in background.
@@ -189,7 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const [{ value: cachedAuth }, { value: cachedRestaurantId }, { value: token }] = await Promise.all([
         preferences.get({ key: AUTH_CACHE_KEY }),
         preferences.get({ key: RESTAURANT_ID_KEY }),
-        preferences.get({ key: "qrave_token" }),
+        preferences.get({ key: "orderji_token" }),
       ]);
 
       // Optimistic UI: if we have cached user, render immediately.

@@ -1,5 +1,5 @@
 /**
- * Qrave Frontend Types
+ * OrderJi Frontend Types
  * API response types matching backend schemas
  */
 
@@ -62,6 +62,7 @@ export interface Restaurant {
 
   plan: "STARTER" | "PRO" | "ENTERPRISE";
   isActive: boolean;
+  isEligibleForTrial?: boolean;
 
   qrDesign?: string | null;
 

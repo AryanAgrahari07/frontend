@@ -6,11 +6,11 @@ import { Utensils, Plus, Loader2, RefreshCw, Edit2, Trash2, User, Receipt, Dolla
 import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
   DialogFooter,
   DialogDescription
@@ -21,13 +21,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/context/AuthContext";
-import { 
-  useTables, 
-  useUpdateTableStatus, 
-  useCreateTable, 
-  useDeleteTable, 
-  useRestaurant, 
-  useStaff, 
+import {
+  useTables,
+  useUpdateTableStatus,
+  useCreateTable,
+  useDeleteTable,
+  useRestaurant,
+  useStaff,
   useAssignWaiterToTable,
   useMenuCategories,
   useCreateOrder,
@@ -56,6 +56,7 @@ import { DesktopPOS } from "@/components/pos/desktoppos";
 import { getCustomizationSummary } from "@/components/menu/Customizedorderitemdisplay";
 import { useThermalPrinter } from "@/hooks/useThermalPrinter";
 import { buildBillDataFromOrder } from "@/lib/bill-data";
+import { buildKOTDataFromOrder } from "@/lib/kot-data";
 export default function FloorMapPage() {
   const { restaurantId, user } = useAuth();
   const { data: restaurant } = useRestaurant(restaurantId);
@@ -65,13 +66,14 @@ export default function FloorMapPage() {
     isConnected: isPrinterConnected,
     isPrinting,
     printBill: printThermalBill,
+    printKOT,
   } = useThermalPrinter(32);
   const { data: tables, isLoading, refetch } = useTables(restaurantId);
   const { data: staff } = useStaff(restaurantId);
   const { data: menuData } = useMenuCategories(restaurantId, restaurant?.slug ?? null);
   const { data: ordersData } = useOrders(restaurantId, { limit: 30, offset: 0 });
   const orders = ordersData?.orders ?? [];
-  
+
   const assignWaiter = useAssignWaiterToTable(restaurantId);
   const updateStatus = useUpdateTableStatus(restaurantId);
   const createTable = useCreateTable(restaurantId);
@@ -81,7 +83,7 @@ export default function FloorMapPage() {
   const closeOrder = useCloseOrder(restaurantId);
   const updateOrder = useUpdateOrder(restaurantId);
   const removeServiceCharge = useRemoveOrderServiceCharge(restaurantId);
-  
+
   // Filter waiters only and check if user is admin/owner
   const waiters = staff?.filter((s) => s.role === "WAITER" && s.isActive) || [];
   const isAdmin = user?.role === "owner" || user?.role === "admin" || user?.role === "platform_admin";
@@ -134,7 +136,7 @@ export default function FloorMapPage() {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
@@ -186,7 +188,7 @@ export default function FloorMapPage() {
       toast.info("Cannot change status while order is active");
       return;
     }
-    
+
     const current = getEffectiveTableStatus(table);
     const newStatus: TableStatus = current === "AVAILABLE" ? "OCCUPIED" : "AVAILABLE";
     updateStatus.mutate({ tableId: table.id, status: newStatus });
@@ -195,17 +197,17 @@ export default function FloorMapPage() {
   const handleAddTable = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTable.tableNumber.trim()) return;
-    
+
     const slug = restaurant?.slug || "restaurant";
     const qrCodePayload = `${window.location.origin}/r/${slug}?table=${newTable.tableNumber}`;
-    
+
     await createTable.mutateAsync({
       tableNumber: newTable.tableNumber.trim(),
       capacity: newTable.capacity,
       floorSection: newTable.floorSection.trim() || undefined,
       qrCodePayload,
     });
-    
+
     setNewTable({ tableNumber: "", capacity: 4, floorSection: "" });
     setIsAddDialogOpen(false);
   };
@@ -356,12 +358,78 @@ export default function FloorMapPage() {
     toast.success("Order saved!");
   };
 
-  const handleSaveAndPrint = () => {
+  const handleSaveAndPrint = async () => {
     if (manualCart.length === 0) {
       toast.error("Please add items to the order");
       return;
     }
-    toast.success("Order saved and sent to printer!");
+
+    if (!selectedTableForOrder) {
+      toast.error("No table selected");
+      return;
+    }
+
+    // Printer must be connected — KOT print is the purpose of this button.
+    if (!isPrinterConnected) {
+      toast.error("Printer not connected, Connect to print KOT");
+      return;
+    }
+
+    try {
+      const paymentStatusMap = {
+        "cash": "PAID",
+        "card": "PAID",
+        "upi": "PAID",
+        "due": "DUE",
+      };
+
+      const created = await createOrder.mutateAsync({
+        tableId: selectedTableForOrder.id,
+        orderType: "DINE_IN",
+        items: manualCart.map((item) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          variantId: item.variantId,
+          modifierIds: item.modifierIds,
+        })),
+        assignedWaiterId: selectedWaiterIdForOrder || undefined,
+        waiveServiceCharge,
+        paymentMethod: paymentMethod.toUpperCase() as "CASH" | "CARD" | "UPI" | "DUE",
+        paymentStatus: paymentStatusMap[paymentMethod] as "PAID" | "DUE",
+      });
+
+      // Apply discount if set
+      const discountNum = parseFloat(discountAmount || "0");
+      if (isAdmin && discountAmount.trim() && !Number.isNaN(discountNum) && discountNum > 0) {
+        try {
+          await updateOrder.mutateAsync({
+            orderId: created.id,
+            data: { discountAmount: discountNum },
+          });
+        } catch {
+          toast.error("Order created, but failed to apply discount");
+        }
+      }
+
+      // Print KOT to thermal printer
+      if (restaurant) {
+        const kotData = buildKOTDataFromOrder({ order: created, restaurant });
+        await printKOT(kotData);
+      }
+
+      toast.success(
+        `KOT printed! Table ${selectedTableForOrder.tableNumber} - ${manualCart.length} items`,
+      );
+
+      setManualCart([]);
+      setPaymentMethod("due");
+      setIsPOSOpen(false);
+      setShowMobilePOS(false);
+      setSelectedTableForOrder(null);
+      refetch();
+    } catch (error) {
+      // Error handled by mutation / printKOT toast
+    }
   };
 
   const handleSendToKitchen = async () => {
@@ -378,7 +446,7 @@ export default function FloorMapPage() {
     try {
       const paymentStatusMap = {
         "cash": "PAID",
-        "card": "PAID", 
+        "card": "PAID",
         "upi": "PAID",
         "due": "DUE",
       };
@@ -527,12 +595,12 @@ export default function FloorMapPage() {
       );
 
       refetch();
-      
+
       setTimeout(() => {
         setIsBillDialogOpen(false);
         setSelectedOrderForBill(null);
       }, 1500);
-      
+
     } catch (error: any) {
       console.error("❌ Payment error:", error);
       toast.error(error.message || "Failed to process payment");
@@ -716,7 +784,7 @@ export default function FloorMapPage() {
             onIncrementLineItem={incrementLineItem}
             getMenuItemQuantity={getMenuItemQuantity}
             onPlusForCustomizableItem={handlePlusForCustomizableItem}
-            onTableChange={() => {}} // Table fixed from floor map
+            onTableChange={() => { }} // Table fixed from floor map
             onWaiterChange={async (id) => {
               const waiterId = id === "none" ? null : id;
               setSelectedWaiterIdForOrder(waiterId);
@@ -724,7 +792,7 @@ export default function FloorMapPage() {
                 await handleAssignWaiter(selectedTableForOrder.id, waiterId);
               }
             }}
-            onDiningTypeChange={() => {}} // Always dine-in
+            onDiningTypeChange={() => { }} // Always dine-in
             onPaymentMethodChange={setPaymentMethod}
             onSendToKitchen={handleSendToKitchen}
             onSave={handleSave}
@@ -772,67 +840,67 @@ export default function FloorMapPage() {
           ) : null}
 
           <div className="flex gap-2 w-full sm:w-auto">
-          <Button variant="outline" size="icon" onClick={() => refetch()} className="shrink-0">
-            <RefreshCw className="w-4 h-4" />
-          </Button>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="shadow-lg shadow-primary/20 flex-1 sm:flex-none">
-                <Plus className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Add Table</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="w-[95vw] max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-xl sm:text-2xl">Add New Table</DialogTitle>
-                <DialogDescription className="text-xs sm:text-sm">Create a new table for your restaurant floor.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddTable} className="space-y-4 py-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Button variant="outline" size="icon" onClick={() => refetch()} className="shrink-0">
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="shadow-lg shadow-primary/20 flex-1 sm:flex-none">
+                  <Plus className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Add Table</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[95vw] max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-xl sm:text-2xl">Add New Table</DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm">Create a new table for your restaurant floor.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddTable} className="space-y-4 py-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="table-number" className="text-xs sm:text-sm">Table Number *</Label>
+                      <Input
+                        id="table-number"
+                        placeholder="e.g., 1, A1, VIP1"
+                        value={newTable.tableNumber}
+                        onChange={(e) => setNewTable({ ...newTable, tableNumber: e.target.value })}
+                        required
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="capacity" className="text-xs sm:text-sm">Capacity *</Label>
+                      <Input
+                        id="capacity"
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={newTable.capacity}
+                        onChange={(e) => setNewTable({ ...newTable, capacity: parseInt(e.target.value) || 1 })}
+                        required
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="table-number" className="text-xs sm:text-sm">Table Number *</Label>
-                    <Input 
-                      id="table-number" 
-                      placeholder="e.g., 1, A1, VIP1" 
-                      value={newTable.tableNumber}
-                      onChange={(e) => setNewTable({ ...newTable, tableNumber: e.target.value })}
-                      required
+                    <Label htmlFor="floor-section" className="text-xs sm:text-sm">Floor Section</Label>
+                    <Input
+                      id="floor-section"
+                      placeholder="e.g., Main Floor, Patio, VIP Area"
+                      value={newTable.floorSection}
+                      onChange={(e) => setNewTable({ ...newTable, floorSection: e.target.value })}
                       className="text-sm"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="capacity" className="text-xs sm:text-sm">Capacity *</Label>
-                    <Input 
-                      id="capacity" 
-                      type="number" 
-                      min="1" 
-                      max="20"
-                      value={newTable.capacity}
-                      onChange={(e) => setNewTable({ ...newTable, capacity: parseInt(e.target.value) || 1 })}
-                      required
-                      className="text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="floor-section" className="text-xs sm:text-sm">Floor Section</Label>
-                  <Input 
-                    id="floor-section" 
-                    placeholder="e.g., Main Floor, Patio, VIP Area"
-                    value={newTable.floorSection}
-                    onChange={(e) => setNewTable({ ...newTable, floorSection: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-                <DialogFooter>
-                  <Button type="submit" className="w-full h-10 sm:h-11" disabled={createTable.isPending}>
-                    {createTable.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    Create Table
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <DialogFooter>
+                    <Button type="submit" className="w-full h-10 sm:h-11" disabled={createTable.isPending}>
+                      {createTable.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Create Table
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
@@ -872,17 +940,17 @@ export default function FloorMapPage() {
                   </h3>
                   <div className="flex gap-3 sm:gap-4 text-[10px] sm:text-xs font-bold">
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-green-500" /> 
+                      <span className="w-2 h-2 rounded-full bg-green-500" />
                       <span className="hidden sm:inline">Available</span>
                       <span className="sm:hidden">Avail</span>
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-red-400" /> 
+                      <span className="w-2 h-2 rounded-full bg-red-400" />
                       <span className="hidden sm:inline">Occupied</span>
                       <span className="sm:hidden">Occup</span>
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-yellow-400" /> 
+                      <span className="w-2 h-2 rounded-full bg-yellow-400" />
                       <span className="hidden sm:inline">Reserved</span>
                       <span className="sm:hidden">Resv</span>
                     </span>
@@ -964,7 +1032,7 @@ export default function FloorMapPage() {
                           )}>
                             {table.tableNumber}
                           </span>
-                          
+
                           {/* Capacity */}
                           <span className={cn(
                             "text-xs uppercase tracking-wider font-medium",
@@ -985,7 +1053,7 @@ export default function FloorMapPage() {
                               {effectiveWaiterName}
                             </span>
                           )}
-                          
+
                           {/* Bill Info */}
                           {hasBill && (
                             <div className="w-full mt-2 space-y-2 px-4">
@@ -995,7 +1063,7 @@ export default function FloorMapPage() {
                                   {currency}{billAmount.toFixed(0)}
                                 </span>
                               </div>
-                              <Badge 
+                              <Badge
                                 className={cn(
                                   "text-xs px-3 py-1 font-semibold rounded-full",
                                   getPaymentStatusColor(paymentStatus)
@@ -1005,7 +1073,7 @@ export default function FloorMapPage() {
                               </Badge>
                             </div>
                           )}
-                          
+
                           {/* Waiter Info - Inside card at bottom */}
                           {effectiveWaiterName && !hasBill && (
                             <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
@@ -1015,7 +1083,7 @@ export default function FloorMapPage() {
                             </div>
                           )}
                         </button>
-                        
+
                         {/* Bottom Icons - Half in, half out */}
                         <div className="absolute -bottom-0 left-1/2 -translate-x-1/2 flex gap-4 z-10">
                           <button
@@ -1092,7 +1160,7 @@ export default function FloorMapPage() {
             onIncrementLineItem={incrementLineItem}
             getMenuItemQuantity={getMenuItemQuantity}
             onPlusForCustomizableItem={handlePlusForCustomizableItem}
-            onTableChange={() => {}} // Table fixed from floor map
+            onTableChange={() => { }} // Table fixed from floor map
             onWaiterChange={async (id) => {
               const waiterId = id === "none" ? null : id;
               setSelectedWaiterIdForOrder(waiterId);
@@ -1100,7 +1168,7 @@ export default function FloorMapPage() {
                 await handleAssignWaiter(selectedTableForOrder.id, waiterId);
               }
             }}
-            onOrderMethodChange={() => {}} // Always dine-in
+            onOrderMethodChange={() => { }} // Always dine-in
             onPaymentMethodChange={setPaymentMethod}
             onSendToKitchen={handleSendToKitchen}
             onSave={handleSave}
@@ -1491,7 +1559,7 @@ export default function FloorMapPage() {
                   <Separator />
                   <div>
                     <h4 className="font-semibold text-sm mb-3">
-                      {selectedOrderForBill.paymentStatus === "PARTIALLY_PAID" 
+                      {selectedOrderForBill.paymentStatus === "PARTIALLY_PAID"
                         ? "Pay Outstanding Amount"
                         : "Accept Payment"}
                     </h4>

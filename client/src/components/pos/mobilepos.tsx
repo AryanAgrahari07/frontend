@@ -38,6 +38,7 @@ import type { MenuItem, Table } from "@/types";
 import type { POSCartLineItem } from "@/types/pos";
 import { getCustomizationSummary } from "@/components/menu/Customizedorderitemdisplay";
 import { useLanguage, getTranslatedName } from "@/context/LanguageContext";
+import { toast } from "sonner";
 
 type POSMode = "full" | "waiter";
 
@@ -141,6 +142,14 @@ export function MobilePOS({
 }: MobilePOSProps) {
   const { language } = useLanguage();
   const isWaiterMode = mode === "waiter";
+
+  const handleActionClick = (callback?: () => void) => {
+    if (diningType === "dine-in" && (!tableNumber || tableNumber === "none")) {
+      toast.error("Please select table for the dine in order");
+      return;
+    }
+    callback?.();
+  };
 
   const [activeView, setActiveView] = useState<"items" | "order">("items");
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
@@ -759,7 +768,7 @@ export function MobilePOS({
               <div className="px-2 py-1.5">
                 {isWaiterMode ? (
                   <Button
-                    onClick={onSendToKitchen}
+                    onClick={() => handleActionClick(onSendToKitchen)}
                     disabled={!hasItems || isLoading}
                     className="w-full h-10 text-sm flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white"
                   >
@@ -773,7 +782,7 @@ export function MobilePOS({
                 ) : (
                   <div className="grid grid-cols-3 gap-1">
                     <Button
-                      onClick={onSave!}
+                      onClick={() => handleActionClick(onSave)}
                       variant="outline"
                       disabled={!hasItems}
                       className="h-9 text-xs flex flex-col items-center justify-center gap-0 hover:bg-gray-100"
@@ -782,16 +791,16 @@ export function MobilePOS({
                       <span className="text-[8px] font-semibold mt-0.5">Save</span>
                     </Button>
                     <Button
-                      onClick={onSaveAndPrint!}
+                      onClick={() => handleActionClick(onSaveAndPrint)}
                       variant="outline"
                       disabled={!hasItems}
                       className="h-9 text-xs flex flex-col items-center justify-center gap-0 hover:bg-gray-100"
                     >
                       <Printer className="size-3" />
-                      <span className="text-[8px] font-semibold mt-0.5">Print</span>
+                      <span className="text-[8px] font-semibold mt-0.5">KOT</span>
                     </Button>
                     <Button
-                      onClick={onSendToKitchen}
+                      onClick={() => handleActionClick(onSendToKitchen)}
                       disabled={!hasItems || isLoading}
                       className="h-9 text-xs flex flex-col items-center justify-center gap-0 bg-primary hover:bg-primary/90 text-white"
                     >

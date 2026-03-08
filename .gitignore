@@ -9,3 +9,5 @@ vite.config.ts.*
 backend
 ios
 android
+.env
+.env.*

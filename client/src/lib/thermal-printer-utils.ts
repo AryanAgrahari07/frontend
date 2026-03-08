@@ -4,6 +4,63 @@
  * Matches professional restaurant bill design
  */
 
+// ── Web Bluetooth API type declarations ──────────────────────────────────────
+// TypeScript's default lib does not include the Web Bluetooth or Web USB APIs.
+// We declare the minimal subset used in this file so the compiler is happy
+// without needing @types/web-bluetooth or @types/webusb.
+declare global {
+  // Bluetooth ----------------------------------------------------------------
+  interface BluetoothRemoteGATTCharacteristic {
+    properties: { write: boolean };
+    writeValue(value: BufferSource): Promise<void>;
+  }
+  interface BluetoothRemoteGATTService {
+    getCharacteristics(): Promise<BluetoothRemoteGATTCharacteristic[]>;
+    getPrimaryService(service: string): Promise<BluetoothRemoteGATTService>;
+  }
+  interface BluetoothRemoteGATTServer {
+    connected: boolean;
+    connect(): Promise<BluetoothRemoteGATTServer>;
+    disconnect(): void;
+    getPrimaryService(service: string): Promise<BluetoothRemoteGATTService>;
+  }
+  interface BluetoothDevice extends EventTarget {
+    id: string;
+    name?: string;
+    gatt?: BluetoothRemoteGATTServer;
+  }
+  interface RequestDeviceOptions {
+    filters?: Array<{ services?: string[]; vendorId?: number }>;
+    optionalServices?: string[];
+  }
+  interface Bluetooth {
+    requestDevice(options: RequestDeviceOptions): Promise<BluetoothDevice>;
+    getDevices(): Promise<BluetoothDevice[]>;
+  }
+  interface Navigator {
+    bluetooth: Bluetooth;
+  }
+
+  // USB ----------------------------------------------------------------------
+  interface USBDevice {
+    open(): Promise<void>;
+    selectConfiguration(configurationValue: number): Promise<void>;
+    claimInterface(interfaceNumber: number): Promise<void>;
+    close(): Promise<void>;
+  }
+  interface USBDeviceFilter {
+    vendorId?: number;
+    productId?: number;
+  }
+  interface USB {
+    requestDevice(options: { filters: USBDeviceFilter[] }): Promise<USBDevice>;
+  }
+  interface Navigator {
+    usb: USB;
+  }
+}
+
+
 export interface PrinterConfig {
   width: 32 | 48; // Characters per line (32 for 58mm, 48 for 80mm)
   encoding?: string;
@@ -58,6 +115,30 @@ export interface BillData {
 }
 
 /**
+ * KOT (Kitchen Order Ticket) data — no pricing, kitchen-facing only.
+ */
+export interface KOTData {
+  restaurant: {
+    name: string;
+  };
+  kot: {
+    kotNumber: string;   // short ID (last 6 chars of order id or temp id)
+    date: string;
+    time: string;
+    tableNumber?: string;
+    orderType: string;   // 'Dine In' | 'Takeaway' | 'Delivery'
+    waiterName?: string;
+    notes?: string;
+  };
+  items: Array<{
+    name: string;
+    quantity: number;
+    variant?: string;    // e.g. 'Large'
+    modifiers?: string;  // e.g. 'Extra Cheese, No Onion'
+  }>;
+}
+
+/**
  * ESC/POS Command Builder
  */
 export class ESCPOSCommands {
@@ -81,23 +162,23 @@ export class ESCPOSCommands {
   static DOUBLE_SIZE_ON = new Uint8Array([0x1b, 0x21, 0x38]);
   static NORMAL_SIZE = new Uint8Array([0x1b, 0x21, 0x00]);
   static SMALL_TEXT = new Uint8Array([0x1b, 0x21, 0x01]);
-  
+
   // Alignment
   static ALIGN_LEFT = new Uint8Array([0x1b, 0x61, 0x00]);
   static ALIGN_CENTER = new Uint8Array([0x1b, 0x61, 0x01]);
   static ALIGN_RIGHT = new Uint8Array([0x1b, 0x61, 0x02]);
-  
+
   // Line feed
   static LINE_FEED = new Uint8Array([0x0a]);
   static FEED_LINES = (lines: number) => new Uint8Array([0x1b, 0x64, lines]);
-  
+
   // Cut paper
   static CUT_PAPER = new Uint8Array([0x1d, 0x56, 0x00]);
   static PARTIAL_CUT = new Uint8Array([0x1d, 0x56, 0x01]);
-  
+
   // Open cash drawer (if connected)
   static OPEN_DRAWER = new Uint8Array([0x1b, 0x70, 0x00, 0x19, 0xfa]);
-  
+
   // Image/Logo printing
   static SET_IMAGE_MODE = new Uint8Array([0x1b, 0x2a, 0x00]);
 }
@@ -243,11 +324,11 @@ export class BluetoothPrinter {
 
     const CHUNK_LARGE = 512;
     const CHUNK_SMALL = 20;
-    const DELAY_MS    = 5;
+    const DELAY_MS = 5;
 
     let useLargeChunks = true;
 
-    for (let i = 0; i < data.length; ) {
+    for (let i = 0; i < data.length;) {
       const chunkSize = useLargeChunks ? CHUNK_LARGE : CHUNK_SMALL;
       const chunk = data.slice(i, i + chunkSize);
       try {
@@ -418,7 +499,7 @@ export class BluetoothPrinter {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       await new Promise<void>((resolve, reject) => {
-        img.onload  = () => resolve();
+        img.onload = () => resolve();
         img.onerror = () => reject(new Error('Image load failed'));
         img.src = imageUrl;
       });
@@ -429,18 +510,18 @@ export class BluetoothPrinter {
       const TARGET_W = 200;
       const TARGET_H = 92;
 
-      const scale   = Math.min(TARGET_W / img.width, TARGET_H / img.height);
-      const drawW   = Math.round(img.width  * scale);
-      const drawH   = Math.round(img.height * scale);
+      const scale = Math.min(TARGET_W / img.width, TARGET_H / img.height);
+      const drawW = Math.round(img.width * scale);
+      const drawH = Math.round(img.height * scale);
       const offsetX = Math.floor((TARGET_W - drawW) / 2);
       const offsetY = Math.floor((TARGET_H - drawH) / 2);
 
-      const printW  = TARGET_W; // 200 is already a multiple of 8
+      const printW = TARGET_W; // 200 is already a multiple of 8
       const canvasH = TARGET_H;
 
       // ── 3. Draw onto a white canvas, get greyscale luminance array ─────────
       const canvas = document.createElement('canvas');
-      canvas.width  = printW;
+      canvas.width = printW;
       canvas.height = canvasH;
       const ctx = canvas.getContext('2d')!;
 
@@ -449,7 +530,7 @@ export class BluetoothPrinter {
       ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
 
       const imageData = ctx.getImageData(0, 0, printW, canvasH);
-      const px        = imageData.data; // RGBA
+      const px = imageData.data; // RGBA
 
       // Build greyscale float array (0 = black, 255 = white) with alpha composite
       const grey = new Float32Array(printW * canvasH);
@@ -484,21 +565,21 @@ export class BluetoothPrinter {
       //   * 7/16  →  right
       //   3/16  ↙   5/16  ↓   1/16  ↘
       const dither = new Float32Array(grey); // working copy
-      const bits   = new Uint8Array(printW * canvasH); // 0 = white, 1 = black
+      const bits = new Uint8Array(printW * canvasH); // 0 = white, 1 = black
 
       for (let y = 0; y < canvasH; y++) {
         for (let x = 0; x < printW; x++) {
-          const idx  = y * printW + x;
-          const old  = dither[idx];
-          const nw   = old < 128 ? 0 : 255; // quantise
-          bits[idx]  = nw === 0 ? 1 : 0;    // 1 = print dot
-          const err  = old - nw;
+          const idx = y * printW + x;
+          const old = dither[idx];
+          const nw = old < 128 ? 0 : 255; // quantise
+          bits[idx] = nw === 0 ? 1 : 0;    // 1 = print dot
+          const err = old - nw;
 
-          if (x + 1 < printW)                         dither[idx + 1]           += err * 7 / 16;
+          if (x + 1 < printW) dither[idx + 1] += err * 7 / 16;
           if (y + 1 < canvasH) {
-            if (x > 0)                                dither[idx + printW - 1]  += err * 3 / 16;
-                                                      dither[idx + printW]      += err * 5 / 16;
-            if (x + 1 < printW)                       dither[idx + printW + 1]  += err * 1 / 16;
+            if (x > 0) dither[idx + printW - 1] += err * 3 / 16;
+            dither[idx + printW] += err * 5 / 16;
+            if (x + 1 < printW) dither[idx + printW + 1] += err * 1 / 16;
           }
         }
       }
@@ -511,13 +592,13 @@ export class BluetoothPrinter {
         return false;
       };
       let top = 0;
-      while (top    < canvasH && !rowHasInk(top))    top++;
+      while (top < canvasH && !rowHasInk(top)) top++;
       let bot = canvasH - 1;
-      while (bot    > top    && !rowHasInk(bot))     bot--;
+      while (bot > top && !rowHasInk(bot)) bot--;
 
       if (top >= bot) return null; // blank image — skip logo
 
-      const printH      = bot - top + 1;
+      const printH = bot - top + 1;
       const bytesPerRow = printW / 8;
 
       // ── 7. Pack bits into raster bytes ─────────────────────────────────────
@@ -560,14 +641,14 @@ export class BluetoothPrinter {
     try {
       // Center alignment for logo
       await this.sendData(ESCPOSCommands.ALIGN_CENTER);
-      
+
       // Try to print bitmap logo
       const bitmapData = await this.convertImageToBitmap(logoUrl);
       if (bitmapData) {
         await this.sendData(bitmapData);
         await this.sendData(ESCPOSCommands.LINE_FEED);
       }
-      
+
       await this.sendData(ESCPOSCommands.ALIGN_LEFT);
     } catch (error) {
       console.error('Logo printing failed:', error);
@@ -586,13 +667,13 @@ export class BluetoothPrinter {
     try {
       // Initialize printer
       await this.sendData(ESCPOSCommands.INIT);
-      
+
       // Print logo if available
       if (billData.restaurant.logo?.url) {
         await this.printLogo(billData.restaurant.logo.url);
         await this.sendData(ESCPOSCommands.LINE_FEED);
       }
-      
+
       // Header - Restaurant Name (Bold, Double Size, Centered)
       await this.sendData(ESCPOSCommands.ALIGN_CENTER);
       await this.sendData(ESCPOSCommands.BOLD_ON);
@@ -600,7 +681,7 @@ export class BluetoothPrinter {
       await this.sendText(billData.restaurant.name.toUpperCase() + '\n');
       await this.sendData(ESCPOSCommands.NORMAL_SIZE);
       await this.sendData(ESCPOSCommands.BOLD_OFF);
-      
+
       // Restaurant Address (Centered, Small Text)
       await this.sendData(ESCPOSCommands.SMALL_TEXT);
       if (billData.restaurant.addressLine1) {
@@ -622,7 +703,7 @@ export class BluetoothPrinter {
       if (billData.restaurant.email) {
         await this.sendText(`Email: ${billData.restaurant.email}\n`);
       }
-      
+
       // GST & FSSAI Numbers (Centered)
       if (billData.restaurant.gstNumber) {
         await this.sendText(`GSTIN: ${billData.restaurant.gstNumber}\n`);
@@ -630,20 +711,20 @@ export class BluetoothPrinter {
       if (billData.restaurant.fssaiNumber) {
         await this.sendText(`FSSAI LIC NO: ${billData.restaurant.fssaiNumber}\n`);
       }
-      
+
       await this.sendData(ESCPOSCommands.NORMAL_SIZE);
       await this.sendData(ESCPOSCommands.LINE_FEED);
-      
+
       await this.sendData(ESCPOSCommands.ALIGN_LEFT);
       await this.sendText(this.separator('-'));
-      
+
       // Guest/Table Info
       if (billData.bill.guestName) {
         await this.sendText(`Name: ${billData.bill.guestName}\n`);
       }
-      
+
       await this.sendData(ESCPOSCommands.LINE_FEED);
-      
+
       // Bill Details
       // 1) Date + Time together on one line
       const dateTime = `Date & time : ${billData.bill.time} ${billData.bill.date}`.trim();
@@ -679,9 +760,9 @@ export class BluetoothPrinter {
       if (billData.bill.waiterName) {
         await this.sendText(`Waiter: ${billData.bill.waiterName}\n`);
       }
-      
+
       await this.sendText(this.separator('-'));
-      
+
       // Items Header - Item | Qty | Price | Amount
       // Ensure we're in a predictable text mode (some 58mm printers keep condensed/font state)
       await this.sendData(ESCPOSCommands.ALIGN_LEFT);
@@ -722,7 +803,7 @@ export class BluetoothPrinter {
           rightPart;
 
         // Optional debug: verify we never exceed configured width
-        if (localStorage.getItem("qrave_printer_debug") === "1") {
+        if (localStorage.getItem("orderji_printer_debug") === "1") {
           console.log("[printer] item line1", { width: this.config.width, len: line1.length, line1 });
         }
 
@@ -731,7 +812,7 @@ export class BluetoothPrinter {
         // Continuation lines (name only)
         for (const cont of nameLines.slice(1)) {
           const contLine = this.padRight(cont, cols.nameW);
-          if (localStorage.getItem("qrave_printer_debug") === "1") {
+          if (localStorage.getItem("orderji_printer_debug") === "1") {
             console.log("[printer] item cont", { width: this.config.width, len: contLine.length, contLine });
           }
           await this.sendText(contLine + "\r\n");
@@ -742,9 +823,9 @@ export class BluetoothPrinter {
           await this.sendText("\r\n");
         }
       }
-      
+
       await this.sendText(this.separator('-'));
-      
+
       // Totals Section
       await this.sendText('\n');
 
@@ -754,7 +835,7 @@ export class BluetoothPrinter {
         'Sub Total',
         this.formatMoney(billData.totals.subtotal, billData.currency)
       ));
-      
+
       // Service Charge
       if (billData.totals.serviceCharge > 0) {
         const serviceRate = billData.taxRateService || 10;
@@ -763,7 +844,7 @@ export class BluetoothPrinter {
           this.formatMoney(billData.totals.serviceCharge, billData.currency)
         ));
       }
-      
+
       // GST Breakdown - SGST & CGST
       if (billData.totals.cgst && billData.totals.sgst) {
         const gstRate = billData.taxRateGst || 5;
@@ -793,9 +874,9 @@ export class BluetoothPrinter {
           `-${this.formatMoney(discountAbs, billData.currency)}`
         ));
       }
-      
+
       await this.sendText(this.separator('-'));
-      
+
       // Round Off (if applicable)
       if (billData.totals.roundOff && billData.totals.roundOff !== 0) {
         await this.sendText(this.padLine(
@@ -803,7 +884,7 @@ export class BluetoothPrinter {
           this.formatMoney(billData.totals.roundOff, billData.currency)
         ));
       }
-      
+
       // Grand Total (Bold, Larger)
       await this.sendData(ESCPOSCommands.BOLD_ON);
       await this.sendData(ESCPOSCommands.DOUBLE_HEIGHT_ON);
@@ -813,24 +894,127 @@ export class BluetoothPrinter {
       ));
       await this.sendData(ESCPOSCommands.NORMAL_SIZE);
       await this.sendData(ESCPOSCommands.BOLD_OFF);
-      
+
       await this.sendText(this.separator('-'));
-      
+
       // Footer
       await this.sendData(ESCPOSCommands.ALIGN_CENTER);
       await this.sendData(ESCPOSCommands.LINE_FEED);
       await this.sendText('THANKS FOR YOUR VISIT\n');
       await this.sendText('PLEASE VISIT AGAIN\n');
       await this.sendData(ESCPOSCommands.LINE_FEED);
-      
+
       // Feed and cut
       await this.sendData(ESCPOSCommands.FEED_LINES(4));
       await this.sendData(ESCPOSCommands.PARTIAL_CUT);
-      
+
       console.log('✅ Bill printed successfully');
     } catch (error) {
       console.error('❌ Print failed:', error);
       throw new Error('Failed to print bill. Please check printer connection.');
+    }
+  }
+
+  /**
+   * Print a Kitchen Order Ticket (KOT) — no pricing, large text for kitchen staff.
+   */
+  async printKOT(kotData: KOTData): Promise<void> {
+    if (!this.isConnected()) {
+      throw new Error('Printer not connected. Please connect first.');
+    }
+
+    try {
+      await this.sendData(ESCPOSCommands.INIT);
+
+      // ── Header ──────────────────────────────────────────────────────────
+      await this.sendData(ESCPOSCommands.ALIGN_CENTER);
+      await this.sendData(ESCPOSCommands.BOLD_ON);
+      await this.sendData(ESCPOSCommands.DOUBLE_SIZE_ON);
+      await this.sendText('** KOT **\n');
+      await this.sendData(ESCPOSCommands.NORMAL_SIZE);
+      await this.sendData(ESCPOSCommands.BOLD_OFF);
+
+      // Restaurant name
+      await this.sendData(ESCPOSCommands.BOLD_ON);
+      await this.sendText(kotData.restaurant.name.toUpperCase() + '\n');
+      await this.sendData(ESCPOSCommands.BOLD_OFF);
+
+      await this.sendData(ESCPOSCommands.ALIGN_LEFT);
+      await this.sendText(this.separator('='));
+
+      // ── Order info ──────────────────────────────────────────────────────
+      await this.sendText(`KOT No : ${kotData.kot.kotNumber}\n`);
+      await this.sendText(`Date   : ${kotData.kot.date} ${kotData.kot.time}\n`);
+      await this.sendText(`Type   : ${kotData.kot.orderType}${kotData.kot.tableNumber ? ` - Table ${kotData.kot.tableNumber}` : ''}\n`);
+      if (kotData.kot.waiterName) {
+        await this.sendText(`Waiter : ${kotData.kot.waiterName}\n`);
+      }
+
+      await this.sendText(this.separator('-'));
+
+      // ── Items header ────────────────────────────────────────────────────
+      await this.sendData(ESCPOSCommands.BOLD_ON);
+      // Format: Qty  Item name
+      await this.sendText(this.padLine('Item', 'Qty') + '\n');
+      await this.sendData(ESCPOSCommands.BOLD_OFF);
+      await this.sendText(this.separator('-'));
+
+      // ── Items ──────────────────────────────────────────────────────────
+      for (const item of kotData.items) {
+        const qtyStr = `x${item.quantity}`;
+        // Wrap the item name to fit the line
+        const nameLines = this.wrapText(item.name, this.config.width - qtyStr.length - 1);
+
+        // First line: name + qty aligned right
+        await this.sendData(ESCPOSCommands.BOLD_ON);
+        await this.sendData(ESCPOSCommands.DOUBLE_HEIGHT_ON);
+        await this.sendText(this.padLine(nameLines[0] ?? '', qtyStr) + '\n');
+        await this.sendData(ESCPOSCommands.NORMAL_SIZE);
+        await this.sendData(ESCPOSCommands.BOLD_OFF);
+
+        // Continuation lines for long names
+        for (const cont of nameLines.slice(1)) {
+          await this.sendText(cont + '\n');
+        }
+
+        // Variant / modifiers (small text, indented)
+        if (item.variant) {
+          await this.sendData(ESCPOSCommands.SMALL_TEXT);
+          await this.sendText(`  Variant: ${item.variant}\n`);
+          await this.sendData(ESCPOSCommands.NORMAL_SIZE);
+        }
+        if (item.modifiers) {
+          await this.sendData(ESCPOSCommands.SMALL_TEXT);
+          const modLines = this.wrapText(`  + ${item.modifiers}`, this.config.width);
+          for (const ml of modLines) {
+            await this.sendText(ml + '\n');
+          }
+          await this.sendData(ESCPOSCommands.NORMAL_SIZE);
+        }
+      }
+
+      await this.sendText(this.separator('='));
+
+      // ── Notes ───────────────────────────────────────────────────────────
+      if (kotData.kot.notes) {
+        await this.sendData(ESCPOSCommands.BOLD_ON);
+        await this.sendText('NOTE:\n');
+        await this.sendData(ESCPOSCommands.BOLD_OFF);
+        const noteLines = this.wrapText(kotData.kot.notes, this.config.width);
+        for (const nl of noteLines) {
+          await this.sendText(nl + '\n');
+        }
+        await this.sendText(this.separator('-'));
+      }
+
+      // Feed and cut
+      await this.sendData(ESCPOSCommands.FEED_LINES(4));
+      await this.sendData(ESCPOSCommands.PARTIAL_CUT);
+
+      console.log('✅ KOT printed successfully');
+    } catch (error) {
+      console.error('❌ KOT print failed:', error);
+      throw new Error('Failed to print KOT. Please check printer connection.');
     }
   }
 

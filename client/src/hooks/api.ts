@@ -66,7 +66,7 @@ interface ExtractionJob {
 }
 
 // === Query Keys ===
-const queryKeys = {
+export const queryKeys = {
   restaurants: ["restaurants"] as const,
   restaurant: (id: string | null) => ["restaurant", id] as const,
   restaurantBySlug: (slug: string | null) => ["restaurant-by-slug", slug] as const,
@@ -152,8 +152,9 @@ export function usePublicMenu(slug: string | null, dietaryFilter?: 'veg' | 'non-
       return api.get<MenuData>(url);
     },
     enabled: !!slug,
-    staleTime: 0,
-    refetchInterval: 5000,
+    staleTime: 10000,
+    // PERF-5: Reduced from 30s → 120s. 1M viewers × every 30s = 33K req/sec. Rely on backend Redis TTL.
+    refetchInterval: 120000,
   });
 }
 
@@ -170,8 +171,9 @@ export function useMenuCategories(restaurantId: string | null, slug: string | nu
       };
     },
     enabled: !!slug,
-    staleTime: 0,
-    refetchInterval: 10000,
+    staleTime: 10000,
+    // PERF-5: Reduced from 30s → 120s to reduce load from high-traffic public menu viewers
+    refetchInterval: 120000,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
@@ -365,7 +367,10 @@ export function useOrders(restaurantId: string | null, opts?: { status?: string;
         }
       }>(`/api/restaurants/${restaurantId}/orders${q ? `?${q}` : ""}`),
     enabled: !!restaurantId,
-    refetchInterval: 3000,
+    // Global WS (AuthContext) handles real-time invalidation. 30s poll as a safety net.
+    refetchInterval: 30000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -375,7 +380,10 @@ export function useKitchenOrders(restaurantId: string | null) {
     queryFn: () =>
       api.get<{ orders: Order[] }>(`/api/restaurants/${restaurantId}/orders/kitchen/active`).then((r) => r.orders),
     enabled: !!restaurantId,
-    refetchInterval: 2000,
+    // Global WS (AuthContext) handles real-time invalidation. 30s poll as a safety net.
+    refetchInterval: 30000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -385,7 +393,11 @@ export function useOrderStats(restaurantId: string | null) {
     queryFn: () =>
       api.get<{ stats: OrderStats }>(`/api/restaurants/${restaurantId}/orders/stats/summary`).then((r) => r.stats),
     enabled: !!restaurantId,
-    refetchInterval: 30000,
+    // PERF-2: WS-driven. Invalidated in useRestaurantWebSocket on order.* events.
+    // Was 30s polling → 10K restaurants × 2 req/min = 20K extra req/min
+    refetchInterval: false,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -589,8 +601,9 @@ export function useOrderDetail(restaurantId: string | null, orderId: string | nu
     enabled: !!restaurantId && !!orderId,
     // Details are fetched on demand (dialogs), no polling
     refetchInterval: false,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
+    // H2: Reduce staleTime from Infinity so cashiers don't see old totals
+    staleTime: 5000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -600,7 +613,10 @@ export function useOrder(restaurantId: string | null, orderId: string | null) {
     queryFn: () =>
       api.get<{ order: Order }>(`/api/restaurants/${restaurantId}/orders/${orderId}`).then((r) => r.order),
     enabled: !!restaurantId && !!orderId,
-    refetchInterval: 3000,
+    // BUG-1: Was polling every 3s. 10K restaurants × 5 open dialogs = 50K req/3s. WebSocket handles invalidation.
+    refetchInterval: false,
+    staleTime: 5000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -643,7 +659,9 @@ export function useTables(restaurantId: string | null) {
     queryFn: () =>
       api.get<{ tables: Table[] }>(`/api/restaurants/${restaurantId}/tables`).then((r) => r.tables),
     enabled: !!restaurantId,
-    refetchInterval: 15000,
+    // C1: WebSocket driven
+    refetchInterval: false,
+    staleTime: 0,
   });
 }
 
@@ -697,9 +715,9 @@ export function useAssignWaiterToTable(restaurantId: string | null) {
             t.id === tableId
               ? {
                 ...t,
-                assignedWaiterId: staffId,
+                assignedWaiterId: staffId || undefined,
                 // Clear old waiter object; server will return enriched waiter on success
-                assignedWaiter: staffId ? t.assignedWaiter : null,
+                assignedWaiter: staffId ? t.assignedWaiter : undefined,
                 // If assigning to an AVAILABLE table, mimic backend behavior (it switches to OCCUPIED)
                 currentStatus:
                   staffId && t.currentStatus === "AVAILABLE" ? "OCCUPIED" : t.currentStatus,
@@ -775,7 +793,11 @@ export function useQueue(restaurantId: string | null, opts?: { status?: string; 
     queryFn: () =>
       api.get<{ entries: QueueEntry[] }>(`/api/restaurants/${restaurantId}/queue${q ? `?${q}` : ""}`).then((r) => r.entries ?? []),
     enabled: !!restaurantId,
-    refetchInterval: 8000,
+    // C1: WebSocket driven
+    refetchInterval: false,
+    staleTime: 0,
+    // FE-2 FIX: Refetch on window focus ensures data is fresh if WS dies
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -785,7 +807,9 @@ export function useQueueActive(restaurantId: string | null) {
     queryFn: () =>
       api.get<{ entries: QueueEntry[] }>(`/api/restaurants/${restaurantId}/queue/active`).then((r) => r.entries ?? []),
     enabled: !!restaurantId,
-    refetchInterval: 5000,
+    // C1: WebSocket driven
+    refetchInterval: false,
+    staleTime: 0,
   });
 }
 

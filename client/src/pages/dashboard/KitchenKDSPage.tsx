@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -331,8 +332,30 @@ export default function KitchenKDSPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-200 text-black flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      <div className="min-h-screen bg-gray-200 p-3 sm:p-4 lg:p-6 text-black">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6">
+          <Skeleton className="h-10 w-64 bg-gray-300" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-10 bg-gray-300" />
+            <Skeleton className="h-10 w-32 bg-gray-300" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <Card key={i} className="bg-white border-gray-300 text-black shadow-sm ring-0">
+              <CardHeader className="py-2 px-3 bg-gray-100 border-b border-gray-200">
+                <Skeleton className="h-6 w-3/4 mb-1" />
+                <Skeleton className="h-3 w-1/2" />
+              </CardHeader>
+              <CardContent className="p-3">
+                <Skeleton className="h-4 w-full mb-3" />
+                <Skeleton className="h-4 w-full mb-3" />
+                <Skeleton className="h-4 w-3/4 mb-4" />
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }

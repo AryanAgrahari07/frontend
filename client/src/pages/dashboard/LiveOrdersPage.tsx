@@ -23,6 +23,7 @@ import {
   Percent,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import {
   Dialog,
@@ -78,6 +79,7 @@ import { MobilePOS } from "@/components/pos/mobilepos";
 import { DesktopPOS } from "@/components/pos/desktoppos";
 import { useThermalPrinter } from "@/hooks/useThermalPrinter";
 import { buildBillDataFromOrder } from "@/lib/bill-data";
+import { buildKOTDataFromOrder } from "@/lib/kot-data";
 
 export default function LiveOrdersPage() {
   const { restaurantId, user } = useAuth();
@@ -88,6 +90,7 @@ export default function LiveOrdersPage() {
     isConnected: isPrinterConnected,
     isPrinting,
     printBill: printThermalBill,
+    printKOT,
   } = useThermalPrinter(32);
 
   // Pagination state
@@ -124,7 +127,7 @@ export default function LiveOrdersPage() {
   const [repeatCustomizationDialogOpen, setRepeatCustomizationDialogOpen] = useState(false);
   const [repeatCustomizationTargetItem, setRepeatCustomizationTargetItem] = useState<MenuItem | null>(null);
 
-  const [selectedTableId, setSelectedTableId] = useState<string>("1");
+  const [selectedTableId, setSelectedTableId] = useState<string>("");
   const [selectedWaiterId, setSelectedWaiterId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("");
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
@@ -341,12 +344,87 @@ export default function LiveOrdersPage() {
     toast.success("Order saved!");
   };
 
-  const handleSaveAndPrint = () => {
+  const handleSaveAndPrint = async () => {
     if (manualCart.length === 0) {
       toast.error("Please add items to the order");
       return;
     }
-    toast.success("Order saved and sent to printer!");
+
+    // Printer must be connected — KOT print is the purpose of this button.
+    if (!isPrinterConnected) {
+      toast.error("Printer not connected, Connect to print KOT");
+      return;
+    }
+
+    try {
+      const orderTypeMap = {
+        "dine-in": "DINE_IN",
+        "takeaway": "TAKEAWAY",
+        "delivery": "DELIVERY",
+      };
+
+      const paymentStatusMap = {
+        "cash": "PAID",
+        "card": "PAID",
+        "upi": "PAID",
+        "due": "DUE",
+      };
+
+      const order = await createOrder.mutateAsync({
+        tableId: orderMethod === "dine-in" ? selectedTableId : undefined,
+        orderType: orderTypeMap[orderMethod] as "DINE_IN" | "TAKEAWAY" | "DELIVERY",
+        waiveServiceCharge: orderMethod === "dine-in" ? waiveServiceCharge : false,
+        items: manualCart.map((item) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          variantId: item.variantId,
+          modifierIds: item.modifierIds,
+        })),
+        assignedWaiterId: selectedWaiterId || undefined,
+        paymentMethod: paymentMethod.toUpperCase() as "CASH" | "CARD" | "UPI" | "DUE",
+        paymentStatus: paymentStatusMap[paymentMethod] as "PAID" | "DUE",
+        notes: cookingNote.trim() || undefined,
+      });
+
+      // Apply discount if set
+      const discountNum = parseFloat(discountAmount || "0");
+      if (isAdmin && discountAmount.trim() && !Number.isNaN(discountNum) && discountNum > 0) {
+        try {
+          await updateOrder.mutateAsync({
+            orderId: order.id,
+            data: { discountAmount: discountNum },
+          });
+        } catch {
+          toast.error("Order created, but failed to apply discount");
+        }
+      }
+
+      // Print KOT to thermal printer
+      if (restaurant) {
+        const kotData = buildKOTDataFromOrder({ order, restaurant });
+        await printKOT(kotData);
+      }
+
+      const tableDisplayNum = tables?.find((t) => t.id === selectedTableId)?.tableNumber || selectedTableId;
+
+      toast.success(
+        `KOT printed! ${orderMethod === "dine-in" ? `Table ${tableDisplayNum}` : ""} - ${manualCart.length} items`,
+      );
+
+      await refetch();
+      setManualCart([]);
+      setSelectedTableId("");
+      setSelectedWaiterId(null);
+      setPaymentMethod("due");
+      setCookingNote("");
+      setDiscountAmount("");
+      setWaiveServiceCharge(false);
+      setIsNewOrderOpen(false);
+      setShowMobilePOS(false);
+      refetch();
+    } catch (error) {
+      // Error handled by mutation / printKOT toast
+    }
   };
 
   const handleSendToKitchen = async () => {
@@ -405,15 +483,17 @@ export default function LiveOrdersPage() {
         }
       }
 
+      const tableDisplayNum = tables?.find((t) => t.id === selectedTableId)?.tableNumber || selectedTableId;
+
       toast.success(
-        `Order ${paymentMethod !== 'due' ? 'placed and paid' : 'sent to kitchen'}! ${orderMethod === 'dine-in' ? `Table ${selectedTableId}` : ''} - ${manualCart.length} items`,
+        `Order ${paymentMethod !== 'due' ? 'placed and paid' : 'sent to kitchen'}! ${orderMethod === 'dine-in' ? `Table ${tableDisplayNum}` : ''} - ${manualCart.length} items`,
       );
 
       // Refresh list so bill details reflects latest discount
       await refetch();
 
       setManualCart([]);
-      setSelectedTableId("1");
+      setSelectedTableId("");
       setSelectedWaiterId(null);
       setPaymentMethod("due");
       setCookingNote("");
@@ -607,7 +687,7 @@ export default function LiveOrdersPage() {
     setShowMobilePOS(false);
     setManualCart([]);
     setSelectedWaiterId(null);
-    setSelectedTableId("1");
+    setSelectedTableId("");
     setCookingNote("");
     setDiscountAmount("");
     setSearchQuery("");
@@ -639,8 +719,54 @@ export default function LiveOrdersPage() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-5 w-64" />
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Skeleton className="h-10 w-10" />
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32 hidden sm:block" />
+          </div>
+        </div>
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="w-full lg:w-1/3 flex flex-col gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="w-full p-4 flex justify-between shadow-sm">
+                <div className="space-y-3">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <div className="space-y-3 items-end flex flex-col">
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </Card>
+            ))}
+          </div>
+          <div className="hidden lg:block lg:w-2/3">
+            <Card className="h-full min-h-[600px] p-6">
+              <div className="flex justify-between items-start mb-6 border-b pb-6">
+                <div>
+                  <Skeleton className="h-8 w-32 mb-2" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
+                <Skeleton className="h-10 w-32" />
+              </div>
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex justify-between pb-4 border-b">
+                    <div>
+                      <Skeleton className="h-5 w-48 mb-2" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                    <Skeleton className="h-5 w-24" />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
         </div>
       </DashboardLayout>
     );

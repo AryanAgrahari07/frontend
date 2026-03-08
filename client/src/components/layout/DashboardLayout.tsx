@@ -31,7 +31,7 @@ const NAV_LINKS = [
   { icon: FileText, label: "Transactions", href: "/dashboard/transactions" },
   { icon: Users, label: "Staff", href: "/dashboard/staff" },
   { icon: UtensilsCrossed, label: "Menu Builder", href: "/dashboard/menu" },
-  { icon: Package, label: "Inventory", href: "/dashboard/inventory" },
+  // { icon: Package, label: "Inventory", href: "/dashboard/inventory" },
   { icon: QrCode, label: "QR Codes", href: "/dashboard/qr" },
   { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
@@ -70,11 +70,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className="w-64 bg-background border-r border-border fixed h-full z-40 hidden lg:flex flex-col">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <Link href="/dashboard">
-            <div className="text-xl font-heading font-bold tracking-tight flex items-center gap-2 cursor-pointer">
-              <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-                <span className="text-white text-xs font-bold">Q</span>
+            <div className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity">
+              <img src="/logo.png" alt="OrderJi" className="w-8 h-8 object-contain drop-shadow-sm" />
+              <div className="text-2xl font-heading font-black tracking-tight">
+                <span className="text-foreground dark:text-white">Order</span><span className="text-primary">Ji</span>
               </div>
-              Qrave.
             </div>
           </Link>
         </div>
@@ -179,11 +179,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         <div className="h-16 flex items-center justify-between px-6 border-b border-border">
           <Link href="/dashboard">
-            <div className="text-xl font-heading font-bold tracking-tight flex items-center gap-2 cursor-pointer" onClick={handleNavClick}>
-              <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-                <span className="text-white text-xs font-bold">Q</span>
+            <div className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity" onClick={handleNavClick}>
+              <img src="/logo.png" alt="OrderJi" className="w-8 h-8 object-contain drop-shadow-sm" />
+              <div className="hidden sm:block text-2xl font-heading font-black tracking-tight">
+                <span className="text-foreground dark:text-white">Order</span><span className="text-primary">Ji</span>
               </div>
-              Qrave.
             </div>
           </Link>
           <Button

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, CheckCircle2, Crown, Zap, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 export default function SubscriptionExpiredPage() {
     const { user, logout, restaurantId } = useAuth();
@@ -17,6 +18,14 @@ export default function SubscriptionExpiredPage() {
     const [, setLocation] = useLocation();
 
     const [isLoading, setIsLoading] = React.useState(false);
+
+    let isActive = false;
+    let daysRemaining = 0;
+    if (subscription?.subscriptionValidUntil) {
+        const diff = new Date(subscription.subscriptionValidUntil).getTime() - new Date().getTime();
+        daysRemaining = Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
+        isActive = daysRemaining > 0;
+    }
 
     const { data: serverPlans } = useQuery({
         queryKey: ["subscriptionPlans"],
@@ -28,53 +37,59 @@ export default function SubscriptionExpiredPage() {
 
     const plans = [
         {
-            id: "STARTER",
-            name: "Starter",
-            price: serverPlans?.STARTER?.amount || 1499,
-            features: ["Up to 50 Tables", "Basic Analytics", "Email Support", "Digital Menu"],
-            icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
-        },
-        {
             id: "PRO",
             name: "Professional",
-            price: serverPlans?.PRO?.amount || 3999,
+            price: serverPlans?.PRO?.amount || 700,
             isPopular: true,
             features: ["Unlimited Tables", "Advanced Analytics", "Priority Support", "Digital Menu & KDS", "Staff Management"],
             icon: <Zap className="h-5 w-5 text-blue-500" />,
-        },
-        {
-            id: "ENTERPRISE",
-            name: "Enterprise",
-            price: serverPlans?.ENTERPRISE?.amount || 7999,
-            features: ["Multiple Locations", "Custom Integrations", "24/7 Phone Support", "White-label Options", "Dedicated Account Manager"],
-            icon: <Crown className="h-5 w-5 text-purple-500" />,
         }
     ];
 
-    const handleSubscribe = async (planId: string) => {
-        if (!isRazorpayLoaded) {
-            toast({
-                variant: "destructive",
-                title: "Payment Gateway Error",
-                description: "Failed to load payment gateway. Please try again later.",
-            });
-            return;
-        }
+    if (subscription?.isEligibleForTrial) {
+        plans.unshift({
+            id: "STARTER",
+            name: "Starter Trial (7 Days)",
+            price: serverPlans?.STARTER?.amount || 0,
+            features: ["Full System Access", "Explore All Features", "1-Time Usage Per Restaurant"],
+            icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
+            isPopular: false,
+        });
+    }
 
+    const handleSubscribe = async (planId: string) => {
         try {
             setIsLoading(true);
 
             // 1. Create order
             const order = await api.post<any>(`/api/subscriptions/${restaurantId}/create-order`, { plan: planId });
 
+            if (order.isFree) {
+                toast({
+                    title: "Trial Activated!",
+                    description: order.message || "Your 7-day Starter trial is now active.",
+                });
+                await refetch();
+                setLocation("/dashboard");
+                return;
+            }
 
+            if (!isRazorpayLoaded) {
+                toast({
+                    variant: "destructive",
+                    title: "Payment Gateway Error",
+                    description: "Failed to load payment gateway. Please try again later.",
+                });
+                setIsLoading(false);
+                return;
+            }
 
             // 2. Open Razorpay Checkout
             const options = {
                 key: order.keyId,
                 amount: order.amount * 100,
                 currency: order.currency,
-                name: "Qrave",
+                name: "OrderJi",
                 description: `${planId} Subscription Renewal`,
                 order_id: order.razorpayOrderId,
                 handler: async (response: any) => {
@@ -151,18 +166,23 @@ export default function SubscriptionExpiredPage() {
 
             <div className="w-full max-w-4xl space-y-8 mt-8 md:mt-4">
                 <div className="text-center space-y-4">
-                    <div className="mx-auto h-16 w-16 bg-red-100 rounded-full flex items-center justify-center">
-                        <AlertTriangle className="h-8 w-8 text-red-600" />
+                    <div className={cn("mx-auto h-16 w-16 rounded-full flex items-center justify-center", isActive ? "bg-amber-100" : "bg-red-100")}>
+                        {isActive ? <Crown className="h-8 w-8 text-amber-600" /> : <AlertTriangle className="h-8 w-8 text-red-600" />}
                     </div>
                     <h2 className="text-3xl font-extrabold text-gray-900">
-                        Subscription Expired
+                        {isActive ? "Upgrade Plan" : "Subscription Expired"}
                     </h2>
                     <p className="max-w-xl mx-auto text-lg text-gray-500">
-                        Your Qrave subscription for this restaurant has expired or is invalid. Please select a plan to renew and regain access to the portal.
+                        {isActive
+                            ? `You currently have an active ${subscription?.plan} plan (${daysRemaining} days left). Choose a professional plan to permanently unlock all features or renew your access.`
+                            : "Your OrderJi subscription for this restaurant has expired or is invalid. Please select a plan to renew and regain access to the portal."}
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
+                <div className={cn(
+                    "grid grid-cols-1 gap-6 mx-auto pt-8",
+                    plans.length === 1 ? "max-w-sm" : "md:grid-cols-2 max-w-3xl"
+                )}>
                     {plans.map((plan) => (
                         <div
                             key={plan.id}

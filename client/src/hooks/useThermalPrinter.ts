@@ -1,4 +1,4 @@
-import type { BillData, BluetoothPrinter } from "@/lib/thermal-printer-utils";
+import type { BillData, BluetoothPrinter, KOTData } from "@/lib/thermal-printer-utils";
 import { usePrinter } from "@/context/PrinterContext";
 
 interface UseThermalPrinterReturn {
@@ -9,6 +9,7 @@ interface UseThermalPrinterReturn {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   printBill: (billData: BillData) => Promise<void>;
+  printKOT: (kotData: KOTData) => Promise<void>;
   testPrint: () => Promise<void>;
 }
 
@@ -19,7 +20,7 @@ interface UseThermalPrinterReturn {
  * to reconnect repeatedly.
  */
 export function useThermalPrinter(_printerWidth: 32 | 48 = 32): UseThermalPrinterReturn {
-  const { printer, isConnected, isConnecting, isPrinting, connect, disconnect, printBill, testPrint } = usePrinter();
+  const { printer, isConnected, isConnecting, isPrinting, connect, disconnect, printBill, printKOT, testPrint } = usePrinter();
 
   return {
     printer,
@@ -29,6 +30,7 @@ export function useThermalPrinter(_printerWidth: 32 | 48 = 32): UseThermalPrinte
     connect,
     disconnect,
     printBill,
+    printKOT,
     testPrint,
   };
 }

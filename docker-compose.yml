@@ -1,0 +1,191 @@
+version: '3.8'
+
+# ============================================================
+# Qrave Production-Ready Docker Compose
+# Covers:
+#  - PostgreSQL + PgBouncer (INFRA gap)
+#  - Redis Sentinel 3-node HA (INFRA gap: Redis HA)
+#  - API Server with health-check-aware startup (INFRA gap)
+#  - Worker service for async AI menu extraction (INFRA gap)
+# ============================================================
+
+services:
+
+  # ── PostgreSQL primary ───────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: qrave_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: qrave
+    ports:
+      - "5433:5432"   # exposed on 5433; app connects through PgBouncer on 6432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── PgBouncer — transaction-mode connection pooler ───────
+  # INFRA: Sits between the app and Postgres; limits effective DB connections
+  # to default_pool_size=25 regardless of how many app replicas are running.
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: qrave_pgbouncer
+    restart: unless-stopped
+    environment:
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD:-changeme}
+      - DB_HOST=db
+      - DB_NAME=qrave
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=1000
+      - DEFAULT_POOL_SIZE=25
+      - SERVER_TLS_SSLMODE=disable
+      - ADMIN_USERS=postgres
+    ports:
+      - "6432:6432"   # app's DATABASE_URL points here
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Redis primary ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: qrave_redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redispass} --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redispass}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── Redis Sentinel nodes (3 for quorum majority) ─────────
+  # INFRA: Redis Sentinel provides automatic failover without Redis Cluster overhead.
+  # When primary goes down, sentinels elect a new primary within ~30s.
+  # App must use REDIS_SENTINELS env var and connect via ioredis Sentinel mode.
+  redis-sentinel-1:
+    image: redis:7-alpine
+    container_name: qrave_sentinel1
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "echo 'bind 0.0.0.0
+      sentinel monitor mymaster redis 6379 2
+      sentinel auth-pass mymaster ${REDIS_PASSWORD:-redispass}
+      sentinel down-after-milliseconds mymaster 5000
+      sentinel failover-timeout mymaster 60000
+      sentinel parallel-syncs mymaster 1' > /tmp/sentinel.conf
+      && redis-sentinel /tmp/sentinel.conf"
+    ports:
+      - "26379:26379"
+
+  redis-sentinel-2:
+    image: redis:7-alpine
+    container_name: qrave_sentinel2
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "echo 'bind 0.0.0.0
+      sentinel monitor mymaster redis 6379 2
+      sentinel auth-pass mymaster ${REDIS_PASSWORD:-redispass}
+      sentinel down-after-milliseconds mymaster 5000
+      sentinel failover-timeout mymaster 60000
+      sentinel parallel-syncs mymaster 1' > /tmp/sentinel.conf
+      && redis-sentinel /tmp/sentinel.conf"
+    ports:
+      - "26380:26379"
+
+  redis-sentinel-3:
+    image: redis:7-alpine
+    container_name: qrave_sentinel3
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "echo 'bind 0.0.0.0
+      sentinel monitor mymaster redis 6379 2
+      sentinel auth-pass mymaster ${REDIS_PASSWORD:-redispass}
+      sentinel down-after-milliseconds mymaster 5000
+      sentinel failover-timeout mymaster 60000
+      sentinel parallel-syncs mymaster 1' > /tmp/sentinel.conf
+      && redis-sentinel /tmp/sentinel.conf"
+    ports:
+      - "26381:26379"
+
+  # ── API Server ───────────────────────────────────────────
+  # INFRA: health-check-aware — load balancer must wait for /healthz/ready
+  # before routing traffic. The `condition: service_healthy` below ensures
+  # this container does not start until DB and Redis are both healthy.
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qrave_api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-changeme}@pgbouncer:6432/qrave
+      - DATABASE_READ_URL=postgresql://postgres:${DB_PASSWORD:-changeme}@pgbouncer:6432/qrave
+      - DATABASE_WRITE_URL=postgresql://postgres:${DB_PASSWORD:-changeme}@pgbouncer:6432/qrave
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redispass}@redis:6379/0
+      # To use Sentinel HA instead of single Redis, set:
+      # - REDIS_MODE=sentinel
+      # - REDIS_SENTINELS=redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379
+      # - REDIS_SENTINEL_NAME=mymaster
+      - PORT=3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # INFRA GAP: Load balancer should wait for this to return 200
+      # before routing traffic to newly deployed pods/containers
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/healthz/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s  # Give app time to boot before first check
+
+  # ── AI Menu Extraction Worker ────────────────────────────
+  # INFRA: Runs as a separate process/container so heavy Gemini API calls
+  # don't block the main API request cycle. Processes jobs from Redis queue.
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qrave_worker
+    restart: unless-stopped
+    command: ["node", "src/jobs/worker.js"]
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-changeme}@pgbouncer:6432/qrave
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redispass}@redis:6379/0
+      - GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY}
+      - EXTRACTION_MAX_RETRIES=3
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:

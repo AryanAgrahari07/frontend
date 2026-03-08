@@ -26,56 +26,56 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-const TRANSLATIONS: Record<string, { 
-  search: string; 
-  categories: string; 
-  soldOut: string; 
-  popular: string; 
-  available: string; 
-  all: string; 
-  veg: string; 
+const TRANSLATIONS: Record<string, {
+  search: string;
+  categories: string;
+  soldOut: string;
+  popular: string;
+  available: string;
+  all: string;
+  veg: string;
   nonVeg: string;
   variants: string;
   addOns: string;
   viewDetails: string;
   close: string;
 }> = {
-  en: { 
-    search: "Search dishes...", 
-    categories: "Categories", 
-    soldOut: "Sold Out", 
-    popular: "Popular", 
-    available: "Available", 
-    all: "All", 
-    veg: "Veg", 
+  en: {
+    search: "Search dishes...",
+    categories: "Categories",
+    soldOut: "Sold Out",
+    popular: "Popular",
+    available: "Available",
+    all: "All",
+    veg: "Veg",
     nonVeg: "Non-Veg",
     variants: "Size Options",
     addOns: "Add-ons",
     viewDetails: "View Options",
     close: "Close"
   },
-  es: { 
-    search: "Buscar platos...", 
-    categories: "Categorías", 
-    soldOut: "Agotado", 
-    popular: "Popular", 
-    available: "Disponible", 
-    all: "Todo", 
-    veg: "Veg", 
+  es: {
+    search: "Buscar platos...",
+    categories: "Categorías",
+    soldOut: "Agotado",
+    popular: "Popular",
+    available: "Disponible",
+    all: "Todo",
+    veg: "Veg",
     nonVeg: "No-Veg",
     variants: "Opciones",
     addOns: "Extras",
     viewDetails: "Ver Opciones",
     close: "Cerrar"
   },
-  hi: { 
-    search: "डिश खोजें...", 
-    categories: "श्रेणियाँ", 
-    soldOut: "खत्म", 
-    popular: "लोकप्रिय", 
-    available: "उपलब्ध", 
-    all: "सभी", 
-    veg: "शाकाहारी", 
+  hi: {
+    search: "डिश खोजें...",
+    categories: "श्रेणियाँ",
+    soldOut: "खत्म",
+    popular: "लोकप्रिय",
+    available: "उपलब्ध",
+    all: "सभी",
+    veg: "शाकाहारी",
     nonVeg: "मांसाहारी",
     variants: "आकार विकल्प",
     addOns: "अतिरिक्त",
@@ -85,13 +85,13 @@ const TRANSLATIONS: Record<string, {
 };
 
 // Customization Dialog Component
-function ItemCustomizationDialog({ 
-  item, 
-  currency, 
+function ItemCustomizationDialog({
+  item,
+  currency,
   t,
   open,
   onOpenChange
-}: { 
+}: {
   item: MenuItem | null;
   currency: string;
   t: typeof TRANSLATIONS.en;
@@ -126,8 +126,8 @@ function ItemCustomizationDialog({
               </h3>
               <div className="space-y-2">
                 {item.variants?.map((variant) => (
-                  <div 
-                    key={variant.id} 
+                  <div
+                    key={variant.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors border border-border/50"
                   >
                     <div className="flex-1">
@@ -196,14 +196,14 @@ function ItemCustomizationDialog({
 }
 
 // Item Card Component
-function MenuItemCard({ 
-  item, 
-  currency, 
+function MenuItemCard({
+  item,
+  currency,
   t,
   onOpenCustomization
-}: { 
-  item: MenuItem; 
-  currency: string; 
+}: {
+  item: MenuItem;
+  currency: string;
   t: typeof TRANSLATIONS.en;
   onOpenCustomization: (item: MenuItem) => void;
 }) {
@@ -229,13 +229,13 @@ function MenuItemCard({
               </span>
             )}
           </div>
-          
+
           {item.description && (
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-2 line-clamp-2">
               {item.description}
             </p>
           )}
-          
+
           {/* Tags */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {!item.isAvailable && (
@@ -247,8 +247,8 @@ function MenuItemCard({
               const isVeg = tag.toLowerCase() === "veg";
               const isNonVeg = tag.toLowerCase() === "non-veg";
               return (
-                <Badge 
-                  key={i} 
+                <Badge
+                  key={i}
                   className={cn(
                     "text-[10px] sm:text-xs px-1.5 py-0 h-5 font-medium",
                     isVeg && "bg-green-50 text-green-700 border-green-200",
@@ -273,13 +273,13 @@ function MenuItemCard({
             </button>
           )}
         </div>
-        
+
         {/* Item Image */}
         {item.imageUrl && (
           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-muted flex-shrink-0 shadow-sm ring-1 ring-border/30">
-            <img 
-              src={item.imageUrl} 
-              alt={item.name} 
+            <img
+              src={item.imageUrl}
+              alt={item.name}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
           </div>
@@ -292,7 +292,7 @@ function MenuItemCard({
 export default function PublicMenuPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
-  
+
   const [scrolled, setScrolled] = useState(false);
   const [lang, setLang] = useState("en");
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -309,7 +309,7 @@ export default function PublicMenuPage() {
   // Organize items by category
   const categoriesWithItems = useMemo(() => {
     if (!menuData?.categories || !menuData?.items) return [];
-    
+
     return menuData.categories
       .map((cat: MenuCategory) => ({
         ...cat,
@@ -329,12 +329,12 @@ export default function PublicMenuPage() {
   // Filter by search
   const filteredCategories = useMemo(() => {
     if (!searchQuery.trim()) return categoriesWithItems;
-    
+
     const query = searchQuery.toLowerCase();
     return categoriesWithItems
       .map(cat => ({
         ...cat,
-        items: cat.items.filter((item: MenuItem) => 
+        items: cat.items.filter((item: MenuItem) =>
           item.name.toLowerCase().includes(query) ||
           (item.description?.toLowerCase().includes(query) ?? false)
         ),
@@ -388,8 +388,60 @@ export default function PublicMenuPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-background pb-16 font-sans animate-pulse">
+        {/* Hero Skeleton */}
+        <div className="h-48 sm:h-56 bg-muted relative">
+          <div className="absolute bottom-4 left-4 right-4">
+            <div className="h-8 w-1/2 bg-muted-foreground/20 rounded-lg mb-2" />
+            <div className="flex justify-between items-center">
+              <div className="h-4 w-24 bg-muted-foreground/20 rounded-md" />
+              <div className="flex gap-2">
+                <div className="h-8 w-8 rounded-full bg-muted-foreground/20" />
+                <div className="h-8 w-8 rounded-full bg-muted-foreground/20" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Controls Skeleton */}
+        <div className="container max-w-lg mx-auto px-4 py-3 border-b border-border/40">
+          <div className="flex gap-2 mb-2">
+            <div className="h-10 flex-1 bg-muted rounded-xl" />
+            <div className="h-10 w-10 bg-muted rounded-xl" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-8 flex-1 bg-muted rounded-lg" />
+            <div className="h-8 flex-1 bg-muted rounded-lg" />
+            <div className="h-8 flex-1 bg-muted rounded-lg" />
+          </div>
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="container max-w-lg mx-auto px-4 mt-6 space-y-8">
+          {[1, 2, 3].map((cat) => (
+            <div key={cat} className="space-y-4">
+              <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg">
+                <div className="h-5 w-1/3 bg-muted rounded" />
+                <div className="h-4 w-12 bg-muted rounded" />
+              </div>
+              <div className="space-y-4 px-2">
+                {[1, 2].map((item) => (
+                  <div key={item} className="flex gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex justify-between">
+                        <div className="h-4 w-2/3 bg-muted rounded" />
+                        <div className="h-4 w-12 bg-muted rounded" />
+                      </div>
+                      <div className="h-3 w-full bg-muted rounded" />
+                      <div className="h-3 w-4/5 bg-muted rounded" />
+                    </div>
+                    <div className="h-20 w-20 sm:h-24 sm:w-24 bg-muted rounded-2xl flex-shrink-0" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -544,31 +596,31 @@ export default function PublicMenuPage() {
           <div className="flex gap-2 items-center mb-2.5">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
-              <Input 
-                placeholder={t.search} 
+              <Input
+                placeholder={t.search}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 sm:pl-9 h-9 sm:h-10 text-xs sm:text-sm bg-muted/30 border-transparent rounded-xl focus:bg-background focus:ring-1 focus:ring-primary/20 transition-all" 
+                className="pl-8 sm:pl-9 h-9 sm:h-10 text-xs sm:text-sm bg-muted/30 border-transparent rounded-xl focus:bg-background focus:ring-1 focus:ring-primary/20 transition-all"
               />
             </div>
-            <button 
+            <button
               onClick={() => setShowLangPicker(!showLangPicker)}
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-muted/30 flex items-center justify-center text-primary hover:bg-muted/50 transition-colors"
             >
               <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
-          
+
           {showLangPicker && (
             <div className="flex gap-1.5 mb-2.5 animate-in slide-in-from-top-2 duration-300">
               {Object.keys(TRANSLATIONS).map(l => (
-                <button 
+                <button
                   key={l}
                   onClick={() => { setLang(l); setShowLangPicker(false); }}
                   className={cn(
                     "px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-semibold border transition-all uppercase",
-                    lang === l 
-                      ? "bg-primary border-primary text-white" 
+                    lang === l
+                      ? "bg-primary border-primary text-white"
                       : "border-border/50 text-muted-foreground hover:bg-muted/30"
                   )}
                 >
@@ -626,7 +678,7 @@ export default function PublicMenuPage() {
         ) : (
           filteredCategories.map((category, index) => {
             const isExpanded = expandedCategories.has(category.id);
-            
+
             return (
               <div key={category.id}>
                 {/* Category header - Collapsible */}
@@ -652,7 +704,7 @@ export default function PublicMenuPage() {
                     {category.items.length} items
                   </span>
                 </button>
-                
+
                 {/* Items - Only shown when expanded */}
                 {isExpanded && (
                   <div className="py-4 space-y-5 sm:space-y-6">
@@ -688,7 +740,7 @@ export default function PublicMenuPage() {
           Q
         </div>
         <p className="text-xs font-medium text-muted-foreground">Thank you for dining with us</p>
-        <p className="text-[10px] text-muted-foreground/70 mt-1">Powered by Qrave</p>
+        <p className="text-[10px] text-muted-foreground/70 mt-1">Powered by OrderJi</p>
       </footer>
     </div>
   );

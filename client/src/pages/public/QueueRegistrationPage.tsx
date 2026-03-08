@@ -13,10 +13,10 @@ import type { QueueEntry } from "@/types";
 export default function QueueRegistrationPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
-  
+
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurantBySlug(slug ?? null);
   const registerQueue = usePublicRegisterQueue(restaurant?.id ?? null);
-  
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [partySize, setPartySize] = useState(2);
@@ -25,14 +25,14 @@ export default function QueueRegistrationPage() {
 
   // Track status with phone after joining
   const { data: statusEntry } = usePublicQueueStatus(
-    restaurant?.id ?? null, 
+    restaurant?.id ?? null,
     joinedEntry?.phoneNumber ?? null
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    
+
     try {
       const entry = await registerQueue.mutateAsync({
         guestName: name.trim(),
@@ -40,7 +40,7 @@ export default function QueueRegistrationPage() {
         phoneNumber: phone.trim() || undefined,
         notes: notes.trim() || undefined,
       });
-      
+
       setJoinedEntry(entry);
     } catch {
       // Error handled by mutation
@@ -73,7 +73,7 @@ export default function QueueRegistrationPage() {
 
   if (currentEntry) {
     const isCalled = currentEntry.status === "CALLED";
-    
+
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
         <Card className={`w-full max-w-md text-center p-8 border-2 ${isCalled ? "border-primary ring-4 ring-primary/20" : "border-primary/20"}`}>
@@ -84,7 +84,7 @@ export default function QueueRegistrationPage() {
               <Clock className="w-10 h-10 text-primary animate-pulse" />
             )}
           </div>
-          
+
           {isCalled ? (
             <>
               <CardTitle className="text-2xl mb-2 font-heading text-primary">Your Table is Ready!</CardTitle>
@@ -102,7 +102,7 @@ export default function QueueRegistrationPage() {
               </CardDescription>
             </>
           )}
-          
+
           <div className="grid grid-cols-2 gap-4 mb-6">
             {currentEntry.position && (
               <div className="bg-muted rounded-lg p-4">
@@ -134,7 +134,7 @@ export default function QueueRegistrationPage() {
               </Badge>
             </div>
           </div>
-          
+
           <Button variant="outline" onClick={() => setJoinedEntry(null)} className="w-full">
             Register Another Party
           </Button>
@@ -166,24 +166,24 @@ export default function QueueRegistrationPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>
-              <Input 
-                id="name" 
-                placeholder="Enter your name" 
+              <Input
+                id="name"
+                placeholder="Enter your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                required 
+                required
                 className="h-12 text-lg"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-3.5 w-5 h-5 text-muted-foreground" />
-                <Input 
-                  id="phone" 
-                  type="tel" 
-                  placeholder="+91 98765 43210" 
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+91 98765 43210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="pl-10 h-12 text-lg"
@@ -210,9 +210,9 @@ export default function QueueRegistrationPage() {
               {partySize >= 6 && (
                 <div className="flex items-center gap-2 mt-2">
                   <Label htmlFor="custom-size" className="text-sm">More than 6?</Label>
-                  <Input 
+                  <Input
                     id="custom-size"
-                    type="number" 
+                    type="number"
                     min="7"
                     max="20"
                     className="w-20 h-8"
@@ -224,18 +224,18 @@ export default function QueueRegistrationPage() {
 
             <div className="space-y-2">
               <Label htmlFor="notes">Special Requests</Label>
-              <Input 
-                id="notes" 
-                placeholder="e.g., Birthday celebration, high chair needed" 
+              <Input
+                id="notes"
+                placeholder="e.g., Birthday celebration, high chair needed"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="h-12"
               />
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20" 
+            <Button
+              type="submit"
+              className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20"
               disabled={registerQueue.isPending || !name.trim()}
             >
               {registerQueue.isPending ? (
@@ -253,9 +253,9 @@ export default function QueueRegistrationPage() {
           </form>
         </CardContent>
       </Card>
-      
+
       <p className="mt-8 text-sm text-muted-foreground flex items-center gap-2">
-        <Users className="w-4 h-4" /> Powered by Qrave
+        <Users className="w-4 h-4" /> Powered by OrderJi
       </p>
     </div>
   );

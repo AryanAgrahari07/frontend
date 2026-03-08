@@ -259,7 +259,7 @@ export default function StaffManagementPage() {
 
         {/* Add Staff Dialog */}
         <Dialog open={isAddStaffOpen} onOpenChange={setIsAddStaffOpen}>
-          <DialogContent className="w-[calc(100vw-2rem)] max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <UserPlus className="w-5 h-5 text-primary" />
@@ -355,7 +355,7 @@ export default function StaffManagementPage() {
 
         {/* Staff Details Dialog */}
         <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-          <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 sm:gap-3">
                 <div className={cn(

@@ -1,10 +1,10 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTables } from "@/hooks/api";
-import { 
-  useDashboardSummary, 
+import {
+  useDashboardSummary,
   // useTableStats, 
-  useOrderStats, 
+  useOrderStats,
   useQueueStats,
   useScanActivity,
   useRecentOrders,
@@ -12,6 +12,7 @@ import {
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { Users, DollarSign, Utensils, Clock, ShoppingCart, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Table } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -22,22 +23,49 @@ export default function DashboardPage() {
 
   // Option 1: Use single summary endpoint (more efficient)
   const { data: summary, isLoading, isError, error } = useDashboardSummary(restaurantId);
-  
+
   // Option 2: Use individual endpoints (more flexible)
   // const { data: tableStats, isLoading: tablesLoading } = useTableStats(restaurantId);
   // const { data: orderStats, isLoading: ordersLoading } = useOrderStats(restaurantId);
   // const { data: queueStats, isLoading: queueLoading } = useQueueStats(restaurantId);
   // const { data: scanActivity, isLoading: scanLoading } = useScanActivity(restaurantId);
   // const { data: recentOrders, isLoading: recentLoading } = useRecentOrders(restaurantId, 5);
-  
+
   // Get full table details for the grid
   const { data: tables } = useTables(restaurantId);
 
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
+          {[1, 2, 3, 4].map(i => (
+            <Card key={i} className="shadow-sm">
+              <CardHeader className="pb-2 px-3 pt-3 sm:px-6 sm:pt-6 flex flex-row items-center justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-5 w-5 rounded-full" />
+              </CardHeader>
+              <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                <Skeleton className="h-6 sm:h-8 w-16 mb-2" />
+                <Skeleton className="h-3 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-7">
+          <Card className="shadow-sm md:col-span-4">
+            <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
+            <CardContent><Skeleton className="h-[220px] sm:h-[300px] w-full" /></CardContent>
+          </Card>
+          <Card className="shadow-sm md:col-span-3">
+            <CardHeader><Skeleton className="h-6 w-32" /></CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4">
+                {Array(12).fill(0).map((_, i) => (
+                  <Skeleton key={i} className="aspect-square rounded-lg w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     );
@@ -71,29 +99,29 @@ export default function DashboardPage() {
   return (
     <DashboardLayout>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
-        <StatsCard 
-          title="Total Orders" 
-          value={orderStats.totalOrders.toString()} 
-          icon={ShoppingCart} 
-          trend={`${orderStats.pendingOrders} pending, ${orderStats.preparingOrders} preparing`} 
+        <StatsCard
+          title="Total Orders"
+          value={orderStats.totalOrders.toString()}
+          icon={ShoppingCart}
+          trend={`${orderStats.pendingOrders} pending, ${orderStats.preparingOrders} preparing`}
         />
-        <StatsCard 
-          title="Active Tables" 
-          value={`${tableStats.occupied_tables}/${tableStats.total_tables}`} 
-          icon={Users} 
-          trend={`${tableStats.occupancy_rate}% occupancy`} 
+        <StatsCard
+          title="Active Tables"
+          value={`${tableStats.occupied_tables}/${tableStats.total_tables}`}
+          icon={Users}
+          trend={`${tableStats.occupancy_rate}% occupancy`}
         />
-        <StatsCard 
-          title="Queue Waiting" 
-          value={queueStats.totalWaiting.toString()} 
-          icon={Clock} 
-          trend={queueStats.avgWaitTime > 0 ? `Avg: ${queueStats.avgWaitTime} min wait` : "No wait time"} 
+        <StatsCard
+          title="Queue Waiting"
+          value={queueStats.totalWaiting.toString()}
+          icon={Clock}
+          trend={queueStats.avgWaitTime > 0 ? `Avg: ${queueStats.avgWaitTime} min wait` : "No wait time"}
         />
-        <StatsCard 
-          title="Today's Revenue" 
-          value={`₹${parseFloat(orderStats.totalRevenue).toLocaleString()}`} 
-          icon={DollarSign} 
-          trend={`Avg: ₹${parseFloat(orderStats.avgOrderValue).toFixed(0)}/order`} 
+        <StatsCard
+          title="Today's Revenue"
+          value={`₹${parseFloat(orderStats.totalRevenue).toLocaleString()}`}
+          icon={DollarSign}
+          trend={`Avg: ₹${parseFloat(orderStats.avgOrderValue).toFixed(0)}/order`}
         />
       </div>
 
@@ -105,33 +133,33 @@ export default function DashboardPage() {
           <CardContent className="px-2 sm:pl-2">
             <ResponsiveContainer width="100%" height={isMobile ? 220 : 300}>
               <BarChart data={scanActivity} margin={isMobile ? { top: 4, right: 8, left: -12, bottom: 0 } : { top: 8, right: 12, left: 0, bottom: 0 }}>
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#888888" 
-                  tickLine={false} 
-                  axisLine={false} 
+                <XAxis
+                  dataKey="name"
+                  stroke="#888888"
+                  tickLine={false}
+                  axisLine={false}
                   interval={0}
                   tick={{ fill: "#888888", fontSize: isMobile ? 10 : 12 }}
                 />
-                <YAxis 
-                  stroke="#888888" 
-                  tickLine={false} 
-                  axisLine={false} 
+                <YAxis
+                  stroke="#888888"
+                  tickLine={false}
+                  axisLine={false}
                   width={isMobile ? 28 : 40}
                   tick={{ fill: "#888888", fontSize: isMobile ? 10 : 12 }}
-                  tickFormatter={(value) => `${value}`} 
+                  tickFormatter={(value) => `${value}`}
                 />
-                <Tooltip 
-                  cursor={{fill: 'transparent'}}
-                  contentStyle={{ 
-                    borderRadius: '8px', 
-                    border: 'none', 
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' 
+                <Tooltip
+                  cursor={{ fill: 'transparent' }}
+                  contentStyle={{
+                    borderRadius: '8px',
+                    border: 'none',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                   }}
                 />
-                <Bar 
-                  dataKey="scans" 
-                  fill="hsl(var(--primary))" 
+                <Bar
+                  dataKey="scans"
+                  fill="hsl(var(--primary))"
                   radius={[4, 4, 0, 0]}
                   barSize={isMobile ? 18 : 28}
                 />
@@ -149,17 +177,17 @@ export default function DashboardPage() {
               <>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4">
                   {tables.slice(0, 16).map((table: Table) => (
-                    <div 
-                      key={table.id} 
+                    <div
+                      key={table.id}
                       className={cn(
-                        "aspect-square rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold border-2 transition-all cursor-pointer hover:scale-[1.02] sm:hover:scale-105", 
-                        table.currentStatus === "OCCUPIED" 
-                          ? "bg-red-100 border-red-200 text-red-600" 
+                        "aspect-square rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold border-2 transition-all cursor-pointer hover:scale-[1.02] sm:hover:scale-105",
+                        table.currentStatus === "OCCUPIED"
+                          ? "bg-red-100 border-red-200 text-red-600"
                           : table.currentStatus === "RESERVED"
-                          ? "bg-yellow-100 border-yellow-200 text-yellow-600"
-                          : table.currentStatus === "BLOCKED"
-                          ? "bg-gray-100 border-gray-200 text-gray-600"
-                          : "bg-green-100 border-green-200 text-green-600"
+                            ? "bg-yellow-100 border-yellow-200 text-yellow-600"
+                            : table.currentStatus === "BLOCKED"
+                              ? "bg-gray-100 border-gray-200 text-gray-600"
+                              : "bg-green-100 border-green-200 text-green-600"
                       )}
                       title={`Table ${table.tableNumber} - ${table.currentStatus}`}
                     >
@@ -169,15 +197,15 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex gap-3 sm:gap-4 mt-4 sm:mt-6 text-xs sm:text-sm text-muted-foreground justify-center flex-wrap">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-100 border border-green-200 rounded" /> 
+                    <div className="w-3 h-3 bg-green-100 border border-green-200 rounded" />
                     Available ({tableStats.available_tables})
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-100 border border-red-200 rounded" /> 
+                    <div className="w-3 h-3 bg-red-100 border border-red-200 rounded" />
                     Occupied ({tableStats.occupied_tables})
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded" /> 
+                    <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded" />
                     Reserved ({tableStats.reserved_tables})
                   </div>
                 </div>
@@ -205,22 +233,22 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-3">
               {recentOrders.map((order) => (
-                <div 
-                  key={order.id} 
+                <div
+                  key={order.id}
                   className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       "w-2 h-2 rounded-full",
                       order.status === "PENDING" ? "bg-yellow-500" :
-                      order.status === "PREPARING" ? "bg-blue-500" :
-                      order.status === "SERVED" ? "bg-green-500" :
-                      order.status === "PAID" ? "bg-gray-500" : "bg-red-500"
+                        order.status === "PREPARING" ? "bg-blue-500" :
+                          order.status === "SERVED" ? "bg-green-500" :
+                            order.status === "PAID" ? "bg-gray-500" : "bg-red-500"
                     )} />
                     <div>
                       <p className="font-medium text-sm">
-                        {order.table?.tableNumber 
-                          ? `Table ${order.table.tableNumber}` 
+                        {order.table?.tableNumber
+                          ? `Table ${order.table.tableNumber}`
                           : order.guestName || `Order #${order.id.slice(-6)}`
                         }
                       </p>
@@ -258,15 +286,15 @@ export default function DashboardPage() {
   );
 }
 
-function StatsCard({ 
-  title, 
-  value, 
-  icon: Icon, 
-  trend 
-}: { 
-  title: string; 
-  value: string; 
-  icon: React.ElementType; 
+function StatsCard({
+  title,
+  value,
+  icon: Icon,
+  trend
+}: {
+  title: string;
+  value: string;
+  icon: React.ElementType;
   trend: string;
 }) {
   return (

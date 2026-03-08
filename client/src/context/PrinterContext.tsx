@@ -1,8 +1,8 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { BillData, BluetoothPrinter } from "@/lib/thermal-printer-utils";
+import { BillData, BluetoothPrinter, KOTData } from "@/lib/thermal-printer-utils";
 
-const LAST_PRINTER_ID_KEY = "qrave_last_printer_id";
+const LAST_PRINTER_ID_KEY = "orderji_last_printer_id";
 
 type PrinterContextValue = {
   printer: BluetoothPrinter | null;
@@ -13,6 +13,7 @@ type PrinterContextValue = {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   printBill: (billData: BillData) => Promise<void>;
+  printKOT: (kotData: KOTData) => Promise<void>;
   testPrint: () => Promise<void>;
 };
 
@@ -95,7 +96,7 @@ export function PrinterProvider({
         return;
       }
 
-      const debug = localStorage.getItem("qrave_printer_debug") === "1";
+      const debug = localStorage.getItem("orderji_printer_debug") === "1";
       if (debug) {
         console.log("[printer] Printing bill:", {
           billNumber: billData.bill.billNumber,
@@ -110,6 +111,30 @@ export function PrinterProvider({
       } catch (error) {
         console.error("Print error:", error);
         toast.error(error instanceof Error ? error.message : "Failed to print bill");
+      } finally {
+        setIsPrinting(false);
+      }
+    },
+    [printer, isConnected],
+  );
+
+  const printKOT = useCallback(
+    async (kotData: KOTData) => {
+      if (!printer) {
+        toast.error("Printer not initialized");
+        return;
+      }
+      if (!isConnected) {
+        toast.error("Printer not connected, Connect to print KOT");
+        return;
+      }
+      setIsPrinting(true);
+      try {
+        await printer.printKOT(kotData);
+        toast.success("KOT printed successfully");
+      } catch (error) {
+        console.error("KOT print error:", error);
+        toast.error(error instanceof Error ? error.message : "Failed to print KOT");
       } finally {
         setIsPrinting(false);
       }
@@ -148,9 +173,10 @@ export function PrinterProvider({
       connect,
       disconnect,
       printBill,
+      printKOT,
       testPrint,
     }),
-    [printer, isConnected, isConnecting, isPrinting, lastPrinterId, connect, disconnect, printBill, testPrint],
+    [printer, isConnected, isConnecting, isPrinting, lastPrinterId, connect, disconnect, printBill, printKOT, testPrint],
   );
 
   return <PrinterContext.Provider value={value}>{children}</PrinterContext.Provider>;

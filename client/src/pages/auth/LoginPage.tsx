@@ -47,7 +47,7 @@ export default function LoginPage() {
         await staffLogin(finalCode, staffPasscode);
       }
 
-      toast.success("Welcome back to Qrave!");
+      toast.success("Welcome back to OrderJi!");
       setLocation("/app");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Login failed");
@@ -58,10 +58,13 @@ export default function LoginPage() {
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="flex items-center justify-center p-8 bg-background relative z-10">
         <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-left-8 duration-500">
-          <div className="space-y-2 text-center lg:text-left">
+          <div className="space-y-4 text-center lg:text-left">
             <Link href="/">
-              <div className="inline-block text-2xl font-heading font-bold tracking-tighter text-primary mb-6 cursor-pointer">
-                Qrave.
+              <div className="inline-flex items-center gap-3 mb-6 cursor-pointer hover:opacity-90 transition-opacity">
+                <img src="/logo.png" alt="OrderJi Logo" className="w-12 h-12 lg:w-10 lg:h-10 object-contain drop-shadow-md" />
+                <div className="hidden sm:block text-3xl font-heading font-black tracking-tighter">
+                  <span className="text-foreground dark:text-white">Order</span><span className="text-primary">Ji</span>
+                </div>
               </div>
             </Link>
             <h1 className="text-3xl font-heading font-bold tracking-tight">Welcome back</h1>
