@@ -1,1 +1,0 @@
-import{j as n,d as r}from"./index-Cqtsn-jn.js";function i({className:e,...s}){return n.jsxDEV("div",{className:r("animate-pulse rounded-md bg-primary/10",e),...s},void 0,!1,{fileName:"C:/Users/Aryan/Desktop/rms/QR-Menu-Design/client/src/components/ui/skeleton.tsx",lineNumber:8,columnNumber:5},this)}export{i as S};
