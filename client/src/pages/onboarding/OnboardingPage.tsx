@@ -185,7 +185,7 @@ export default function OnboardingPage() {
         });
 
         if (isNative && response.refreshToken) {
-          await secureStorage.set("orderji_refresh_token", response.refreshToken);
+          await secureStorage.set("orderzi_refresh_token", response.refreshToken);
         }
 
         // Update auth context with new user

@@ -82,7 +82,7 @@ export function useRestaurantWebSocket(
                     reconnectAttemptRef.current = 0;
                     setIsConnected(true);
                     // FE-2: Notify global OfflineBanner that WS is connected
-                    window.dispatchEvent(new Event("orderji_ws_connected"));
+                    window.dispatchEvent(new Event("orderzi_ws_connected"));
                     // Join the restaurant room
                     ws.send(JSON.stringify({ type: "join", restaurantId }));
 
@@ -141,7 +141,7 @@ export function useRestaurantWebSocket(
                 ws.onclose = () => {
                     setIsConnected(false);
                     // FE-2: Notify global OfflineBanner that WS dropped
-                    window.dispatchEvent(new Event("orderji_ws_disconnected"));
+                    window.dispatchEvent(new Event("orderzi_ws_disconnected"));
                     if (!isComponentMounted) return;
 
                     if (pingIntervalRef.current) {

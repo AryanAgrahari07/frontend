@@ -63,7 +63,7 @@ export default function LoginPage() {
               <div className="inline-flex items-center gap-3 mb-6 cursor-pointer hover:opacity-90 transition-opacity">
                 <img src="/logo.png" alt="Orderzi Logo" className="w-12 h-12 lg:w-10 lg:h-10 object-contain drop-shadow-md" />
                 <div className="hidden sm:block text-3xl font-heading font-black tracking-tighter">
-                  <span className="text-foreground dark:text-white">Order</span><span className="text-primary">Ji</span>
+                  <span className="text-foreground dark:text-white">Order</span><span className="text-primary">zi</span>
                 </div>
               </div>
             </Link>

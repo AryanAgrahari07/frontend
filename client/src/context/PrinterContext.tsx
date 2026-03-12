@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useMemo, useRef, useStat
 import { toast } from "sonner";
 import { BillData, BluetoothPrinter, KOTData } from "@/lib/thermal-printer-utils";
 
-const LAST_PRINTER_ID_KEY = "orderji_last_printer_id";
+const LAST_PRINTER_ID_KEY = "orderzi_last_printer_id";
 
 type PrinterContextValue = {
   printer: BluetoothPrinter | null;
@@ -96,7 +96,7 @@ export function PrinterProvider({
         return;
       }
 
-      const debug = localStorage.getItem("orderji_printer_debug") === "1";
+      const debug = localStorage.getItem("orderzi_printer_debug") === "1";
       if (debug) {
         console.log("[printer] Printing bill:", {
           billNumber: billData.bill.billNumber,

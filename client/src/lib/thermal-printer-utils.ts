@@ -804,7 +804,7 @@ export class BluetoothPrinter {
           rightPart;
 
         // Optional debug: verify we never exceed configured width
-        if (localStorage.getItem("orderji_printer_debug") === "1") {
+        if (localStorage.getItem("orderzi_printer_debug") === "1") {
           console.log("[printer] item line1", { width: this.config.width, len: line1.length, line1 });
         }
 
@@ -813,7 +813,7 @@ export class BluetoothPrinter {
         // Continuation lines (name only)
         for (const cont of nameLines.slice(1)) {
           const contLine = this.padRight(cont, cols.nameW);
-          if (localStorage.getItem("orderji_printer_debug") === "1") {
+          if (localStorage.getItem("orderzi_printer_debug") === "1") {
             console.log("[printer] item cont", { width: this.config.width, len: contLine.length, contLine });
           }
           await this.sendText(contLine + "\r\n");

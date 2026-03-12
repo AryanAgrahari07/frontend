@@ -1,5 +1,5 @@
 /**
- * API client for OrderJi backend.
+ * API client for orderzi backend.
  * - Access token is stored via Capacitor Preferences (native on iOS/Android, localStorage on web).
  * - Refresh token is stored as HttpOnly cookie on web; on mobile it can be stored in native secure storage.
  * - Includes a 401 interceptor that silently calls /api/auth/refresh and retries once.
@@ -20,8 +20,8 @@ const isNativePlatform = () => {
   catch { return false; }
 };
 
-const TOKEN_KEY = "orderji_token";
-const REFRESH_TOKEN_KEY = "orderji_refresh_token";
+const TOKEN_KEY = "orderzi_token";
+const REFRESH_TOKEN_KEY = "orderzi_refresh_token";
 
 export async function getStoredToken(): Promise<string | null> {
   const { value } = await preferences.get({ key: TOKEN_KEY });
@@ -118,7 +118,7 @@ async function refreshAccessToken(): Promise<void> {
 
         // Notify app-level auth state to reset UI immediately.
         if (typeof window !== "undefined") {
-          window.dispatchEvent(new Event("orderji_auth_expired"));
+          window.dispatchEvent(new Event("orderzi_auth_expired"));
         }
 
         throw new Error("Session expired");

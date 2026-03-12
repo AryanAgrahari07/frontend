@@ -6,9 +6,9 @@ import { secureStorage } from "@/lib/secureStorage";
 
 import { useRestaurantWebSocket } from "@/hooks/useRestaurantWebSocket";
 
-const RESTAURANT_ID_KEY = "orderji_restaurant_id";
-const AUTH_CACHE_KEY = "orderji_auth_cache";
-const REFRESH_TOKEN_KEY = "orderji_refresh_token";
+const RESTAURANT_ID_KEY = "orderzi_restaurant_id";
+const AUTH_CACHE_KEY = "orderzi_auth_cache";
+const REFRESH_TOKEN_KEY = "orderzi_refresh_token";
 
 type User = { id: string; email: string; fullName?: string; role: string; restaurantId?: string | null };
 
@@ -188,8 +188,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })();
     };
 
-    window.addEventListener("orderji_auth_expired", handler);
-    return () => window.removeEventListener("orderji_auth_expired", handler);
+    window.addEventListener("orderzi_auth_expired", handler);
+    return () => window.removeEventListener("orderzi_auth_expired", handler);
   }, []);
 
   // Init: optimistic boot from cache, then validate in background.
@@ -202,7 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const [{ value: cachedAuth }, { value: cachedRestaurantId }, { value: token }] = await Promise.all([
         preferences.get({ key: AUTH_CACHE_KEY }),
         preferences.get({ key: RESTAURANT_ID_KEY }),
-        preferences.get({ key: "orderji_token" }),
+        preferences.get({ key: "orderzi_token" }),
       ]);
 
       // Optimistic UI: if we have cached user, render immediately.

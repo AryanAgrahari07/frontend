@@ -1,5 +1,5 @@
 /**
- * OrderJi Frontend Types
+ * Orderzi Frontend Types
  * API response types matching backend schemas
  */
 
