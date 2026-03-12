@@ -23,6 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,7 @@ const COLORS = ["hsl(var(--primary))", "#fbbf24", "#10b981", "#6366f1", "#f43f5e
 
 export default function AnalyticsPage() {
   const [timeframe, setTimeframe] = useState<"day" | "month" | "quarter" | "year">("day");
+  const [isTopDishesOpen, setIsTopDishesOpen] = useState(false);
   const { user } = useAuth();
   const { restaurantId } = useAuth();
 
@@ -288,12 +291,76 @@ export default function AnalyticsPage() {
                   </div>
                 ))}
               </div>
-              <Button variant="ghost" className="w-full mt-6 text-xs text-primary font-bold">
+              <Button 
+                variant="ghost" 
+                className="w-full mt-6 text-xs text-primary font-bold"
+                onClick={() => setIsTopDishesOpen(true)}
+              >
                 VIEW ALL RANKINGS
               </Button>
             </CardContent>
           </Card>
         </div>
+
+        {/* View All Top Dishes Dialog */}
+        <Dialog open={isTopDishesOpen} onOpenChange={setIsTopDishesOpen}>
+          <DialogContent className="max-w-md w-[95vw] h-[80vh] flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6 pb-2 border-b shrink-0">
+              <DialogTitle className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-500" />
+                All Dish Rankings
+              </DialogTitle>
+              <DialogDescription>
+                Complete list of your best-performing menu items
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="flex-1 p-6">
+              <div className="space-y-4">
+                {analytics.topItems.map((dish, index) => (
+                  <div key={dish.name} className="flex items-center justify-between group gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className={cn(
+                        "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-sm shadow-sm",
+                        index === 0 ? "bg-yellow-100 text-yellow-700" :
+                        index === 1 ? "bg-slate-100 text-slate-700" :
+                        index === 2 ? "bg-orange-50 text-orange-700" :
+                        "bg-muted text-muted-foreground"
+                      )}>
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm group-hover:text-primary transition-colors truncate">
+                          {dish.name}
+                        </p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-medium text-foreground">{dish.orders.toLocaleString()}</span> orders
+                          </p>
+                          <p className="text-[11px] text-muted-foreground font-medium">
+                            ₹{dish.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex items-center">
+                      {dish.trend === "up" ? (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <ArrowUpRight className="w-3 h-3 mr-1" />
+                          Up
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                          <ArrowDownRight className="w-3 h-3 mr-1" />
+                          Down
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
 
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           <Card className="min-w-0">

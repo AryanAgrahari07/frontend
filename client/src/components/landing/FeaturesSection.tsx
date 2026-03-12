@@ -11,7 +11,7 @@ export default function FeaturesSection() {
           Everything You Need. <br /><span className="text-primary italic">In One Place.</span>
         </h2>
         <p className="mt-4 sm:mt-6 text-sm sm:text-lg md:text-xl text-black/60 font-bold max-w-2xl">
-          From the kitchen to the customer's phone, OrderJi handles every aspect of your restaurant operations with unmatched speed.
+          From the kitchen to the customer's phone, Order<span className="text-primary">zi</span> handles every aspect of your restaurant operations with unmatched speed.
         </p>
       </div>
 

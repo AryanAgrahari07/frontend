@@ -104,6 +104,7 @@ export default function TransactionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<string>("");
+  const [orderTypeFilter, setOrderTypeFilter] = useState<string>("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
@@ -120,14 +121,17 @@ export default function TransactionsPage() {
   const limit = 20;
   const offset = (page - 1) * limit;
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
+  // Debounce search removed: user wants explicit search trigger
+  const handleSearchSubmit = () => {
+    setDebouncedSearch(searchTerm);
+    setPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setDebouncedSearch("");
+    setPage(1);
+  };
 
   // Reset WhatsApp phone when dialog closes
   useEffect(() => {
@@ -143,6 +147,7 @@ export default function TransactionsPage() {
     offset,
     search: debouncedSearch,
     paymentMethod: paymentFilter || undefined,
+    orderType: orderTypeFilter || undefined,
     fromDate: fromDate || undefined,
     toDate: toDate || undefined,
   });
@@ -205,6 +210,7 @@ export default function TransactionsPage() {
       fromDate: exportFromDate,
       toDate: exportToDate,
       paymentMethod: paymentFilter || undefined,
+      orderType: orderTypeFilter || undefined,
     }, {
       onSuccess: () => {
         setIsExportDialogOpen(false);
@@ -441,7 +447,7 @@ export default function TransactionsPage() {
         tableNumber: transactionDetail.order?.table?.tableNumber,
         guestName: transactionDetail.order?.guestName,
         waiterName: transactionDetail.order?.placedByStaff?.fullName,
-        cashier: transactionDetail.order?.placedByStaff?.fullName || 'System',
+        cashier: transactionDetail.order?.placedByStaff?.fullName,
         dineIn: transactionDetail.order?.table?.tableNumber ? 'Dine In' : 'Takeaway',
       },
       items: mergeSameOrderItems(transactionDetail.order?.items as any)?.map((item: any) => {
@@ -565,6 +571,7 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
 
   const clearFilters = () => {
     setSearchTerm("");
+    setDebouncedSearch("");
     setPaymentFilter("");
     setFromDate("");
     setToDate("");
@@ -605,7 +612,23 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
                 <div className="grid grid-cols-2 gap-3 bg-muted/30 p-3 sm:p-4 rounded-lg">
                   <div className="space-y-1">
                     <p className="text-[10px] sm:text-xs uppercase font-semibold text-muted-foreground tracking-wider flex items-center gap-1">
-                      <Utensils className="w-3 h-3" /> Table
+                      <Utensils className="w-3 h-3" /> Type
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-sm sm:text-base truncate">
+                        {transactionDetail.order?.orderType === "DINE_IN" ? "Dine-in" : 
+                         transactionDetail.order?.orderType === "TAKEAWAY" ? "Takeaway" : 
+                         transactionDetail.order?.orderType === "DELIVERY" ? "Delivery" : 
+                         transactionDetail.order?.orderType?.replace("_", " ") || "N/A"}
+                      </p>
+                      {transactionDetail.order?.status === "CANCELLED" && (
+                        <Badge variant="outline" className="border-red-200 text-red-700 bg-red-50 text-[10px] h-5 px-1.5 shrink-0">CANCELLED</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] sm:text-xs uppercase font-semibold text-muted-foreground tracking-wider flex items-center gap-1">
+                      <Utensils className="w-3 h-3" /> Table/Guest
                     </p>
                     <p className="font-bold text-sm sm:text-base truncate">
                       {transactionDetail.order?.table?.tableNumber ? `T${transactionDetail.order.table.tableNumber}` : transactionDetail.order?.guestName || "N/A"}
@@ -622,10 +645,6 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
                       <CreditCard className="w-3 h-3" /> Method
                     </p>
                     <Badge className="font-semibold text-xs">{transactionDetail.paymentMethod}</Badge>
-                  </div>
-                  <div className="space-y-1 text-right">
-                    <p className="text-[10px] sm:text-xs uppercase font-semibold text-muted-foreground tracking-wider">Status</p>
-                    <Badge variant="outline" className="text-xs text-green-600 border-green-200 bg-green-50">PAID</Badge>
                   </div>
                 </div>
 
@@ -849,9 +868,9 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
                           </Select>
 
                           {exportOption === "custom" && (
-                            <div className="grid grid-cols-2 gap-4 animate-in fade-in zoom-in duration-200">
-                              <div className="space-y-2">
-                                <Label htmlFor="start-date">Start Date (Max 90 days ago)</Label>
+                            <div className="flex flex-col gap-3 animate-in fade-in zoom-in duration-200">
+                              <div className="space-y-1.5">
+                                <Label htmlFor="start-date" className="text-sm font-medium">Start Date</Label>
                                 <Input 
                                   id="start-date" 
                                   type="date"
@@ -859,10 +878,12 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
                                   onChange={(e) => setCustomExportStart(e.target.value)}
                                   min={format(subDays(new Date(), 90), 'yyyy-MM-dd')}
                                   max={format(new Date(), 'yyyy-MM-dd')}
+                                  className="h-10 text-sm"
                                 />
+                                <p className="text-xs text-muted-foreground">Maximum 90 days ago</p>
                               </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="end-date">End Date</Label>
+                              <div className="space-y-1.5">
+                                <Label htmlFor="end-date" className="text-sm font-medium">End Date</Label>
                                 <Input 
                                   id="end-date" 
                                   type="date"
@@ -870,6 +891,7 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
                                   onChange={(e) => setCustomExportEnd(e.target.value)}
                                   min={customExportStart || undefined}
                                   max={format(new Date(), 'yyyy-MM-dd')}
+                                  className="h-10 text-sm"
                                 />
                               </div>
                             </div>
@@ -903,13 +925,39 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
 
                   {/* Search Bar */}
                   <div className="relative w-full md:w-72 mt-1 md:mt-0 shrink-0">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       placeholder="Search bills, table, guest..."
-                      className="pl-9 h-9 sm:h-10 text-sm w-full"
+                      className="pr-16 h-9 sm:h-10 text-sm w-full"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSearchSubmit();
+                        }
+                      }}
                     />
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                      {searchTerm && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={handleClearSearch}
+                          title="Clear search"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-primary hover:bg-primary/10"
+                        onClick={handleSearchSubmit}
+                        title="Search"
+                      >
+                        <Search className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -950,9 +998,9 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
                   {/* Payment Method Filter */}
                   <div className="flex-[1.2] min-w-0 max-w-[140px]">
                     <Select
-                      value={paymentFilter}
+                      value={paymentFilter || "all"}
                       onValueChange={(value) => {
-                        setPaymentFilter(value);
+                        setPaymentFilter(value === "all" ? "" : value);
                         setPage(1);
                       }}
                     >
@@ -962,10 +1010,29 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
                       <SelectContent>
                         <SelectItem value="all">All</SelectItem>
                         <SelectItem value="CASH">Cash</SelectItem>
-                        <SelectItem value="UPI">UPI</SelectItem>
                         <SelectItem value="CARD">Card</SelectItem>
-                        <SelectItem value="WALLET">Wallet</SelectItem>
-                        <SelectItem value="OTHER">Other</SelectItem>
+                        <SelectItem value="UPI">UPI</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Order Type Filter */}
+                  <div className="flex-[1.2] min-w-0 max-w-[140px]">
+                    <Select
+                      value={orderTypeFilter || "all"}
+                      onValueChange={(value) => {
+                        setOrderTypeFilter(value === "all" ? "" : value);
+                        setPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-full h-8 text-[10px] sm:text-xs px-1.5 sm:px-2">
+                        <SelectValue placeholder="Order Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="DINE_IN">Dine-in</SelectItem>
+                        <SelectItem value="TAKEAWAY">Takeaway</SelectItem>
+                        <SelectItem value="DELIVERY">Delivery</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1016,8 +1083,15 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
                     ) : (
                       transactions.map((transaction) => (
                         <TableRow key={transaction.id} className="hover:bg-muted/30 transition-colors">
-                          <TableCell className="font-mono font-medium text-primary text-sm">
-                            {transaction.billNumber}
+                          <TableCell className="font-mono text-primary text-sm min-w-[120px]">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{transaction.billNumber}</span>
+                              {transaction.order?.status === "CANCELLED" && (
+                                <Badge variant="outline" className="border-red-200 text-red-700 bg-red-50 text-[10px] leading-tight px-1.5 py-0 h-4">
+                                  CANC
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
@@ -1083,7 +1157,14 @@ Total: ${currency}${parseFloat(transactionDetail.grandTotal).toFixed(2)}
                       <CardContent className="p-3 sm:p-4">
                         <div className="flex justify-between items-start mb-3 gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className="font-mono font-bold text-primary text-sm truncate">{transaction.billNumber}</p>
+                            <div className="flex items-center gap-2 lg:mb-0.5">
+                              <p className="font-mono font-bold text-primary text-sm truncate">{transaction.billNumber}</p>
+                              {transaction.order?.status === "CANCELLED" && (
+                                <Badge variant="outline" className="border-red-200 text-red-700 bg-red-50 text-[9px] leading-normal px-1 py-0 h-auto">
+                                  CANC
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground truncate">{new Date(transaction.paidAt).toLocaleDateString()}</p>
                             <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{new Date(transaction.paidAt).toLocaleTimeString()}</p>
                           </div>

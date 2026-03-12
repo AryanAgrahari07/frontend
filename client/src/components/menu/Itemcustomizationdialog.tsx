@@ -162,7 +162,7 @@ export function ItemCustomizationDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
       <DialogContent 
-        className="w-[95vw] sm:w-full sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden"
+        className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden"
         onInteractOutside={(e) => {
           e.preventDefault(); 
           e.stopPropagation();
@@ -234,7 +234,7 @@ export function ItemCustomizationDialog({
                             {variant.variantName}
                             {variant.isDefault && (
                               <Badge variant="outline" className="ml-1.5 sm:ml-2 text-[10px] sm:text-xs">
-                                Popular
+                                Default
                               </Badge>
                             )}
                           </Label>
@@ -321,7 +321,7 @@ export function ItemCustomizationDialog({
                                   {modifier.name}
                                   {modifier.isDefault && (
                                     <Badge variant="outline" className="ml-1.5 sm:ml-2 text-[10px] sm:text-xs">
-                                      Popular
+                                      Default
                                     </Badge>
                                   )}
                                 </Label>

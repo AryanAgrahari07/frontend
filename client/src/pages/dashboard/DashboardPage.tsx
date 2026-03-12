@@ -4,13 +4,13 @@ import { useTables } from "@/hooks/api";
 import {
   useDashboardSummary,
   // useTableStats, 
-  useOrderStats,
-  useQueueStats,
-  useScanActivity,
-  useRecentOrders,
+  // useOrderStats,
+  // useQueueStats,
+  // useScanActivity,
+  // useRecentOrders,
 } from "@/hooks/api.ts";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
-import { Users, DollarSign, Utensils, Clock, ShoppingCart, Loader2 } from "lucide-react";
+import { Users, DollarSign, Utensils, Clock, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Table } from "@/types";

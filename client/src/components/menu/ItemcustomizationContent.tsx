@@ -161,7 +161,7 @@ export function ItemCustomizationContent({
                           {variant.variantName}
                           {variant.isDefault && (
                             <Badge variant="outline" className="ml-1.5 sm:ml-2 text-[10px] sm:text-xs">
-                              Popular
+                              Default
                             </Badge>
                           )}
                         </Label>
@@ -248,7 +248,7 @@ export function ItemCustomizationContent({
                                 {modifier.name}
                                 {modifier.isDefault && (
                                   <Badge variant="outline" className="ml-1.5 sm:ml-2 text-[10px] sm:text-xs">
-                                    Popular
+                                    Default
                                   </Badge>
                                 )}
                               </Label>

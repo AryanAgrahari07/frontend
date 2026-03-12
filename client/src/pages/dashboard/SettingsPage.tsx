@@ -75,6 +75,13 @@ export default function SettingsPage() {
     daysRemaining = Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
   }
 
+  // An active subscription is one where:
+  // (a) daysRemaining > 0 (validUntil is set and in the future), OR
+  // (b) subscriptionStatus is ACTIVE and validUntil is null (trial with old bug)
+  const isActiveSubscription =
+    (daysRemaining !== null && daysRemaining > 0) ||
+    (daysRemaining === null && subscription?.subscriptionStatus === "ACTIVE");
+
   const [shopType, setShopType] = useState("cafe");
   const [shopTypeOpen, setShopTypeOpen] = useState(false);
   const [restaurantName, setRestaurantName] = useState("");
@@ -96,14 +103,16 @@ export default function SettingsPage() {
   const [hindiEnabled, setHindiEnabled] = useState(false);
   const [emailReports, setEmailReports] = useState(true);
   const [tableAlerts, setTableAlerts] = useState(false);
+  const [openTime, setOpenTime] = useState("");
+  const [closeTime, setCloseTime] = useState("");
 
   const [countrySearch, setCountrySearch] = useState("");
   const [stateSearch, setStateSearch] = useState("");
   const [citySearch, setCitySearch] = useState("");
   const [currencySearch, setCurrencySearch] = useState("");
 
-  const [selectedCountryCode, setSelectedCountryCode] = useState(null);
-  const [selectedStateCode, setSelectedStateCode] = useState(null);
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
+  const [selectedStateCode, setSelectedStateCode] = useState<string | null>(null);
 
   // Popover open states
   const [countryOpen, setCountryOpen] = useState(false);
@@ -161,11 +170,14 @@ export default function SettingsPage() {
     const settings = (restaurant as { settings?: RestaurantSettings }).settings;
     const languages = settings?.languages;
     const notifications = settings?.notifications;
+    const timings = settings?.timings;
 
     setSpanishEnabled(!!languages?.es);
     setHindiEnabled(!!languages?.hi);
     setEmailReports(notifications?.emailReports ?? true);
     setTableAlerts(notifications?.tableAlerts ?? false);
+    setOpenTime(timings?.openTime || "");
+    setCloseTime(timings?.closeTime || "");
   }, [restaurant]);
 
   // Auto-load countries on mount (search with empty string to get all)
@@ -212,11 +224,15 @@ export default function SettingsPage() {
           currency: currency || "₹",
           taxRateGst,
           taxRateService,
-          gstNumber,
-          fssaiNumber,
-          email,
-          phoneNumber,
-          googleMapsLink,
+          gstNumber: gstNumber || undefined,
+          fssaiNumber: fssaiNumber || undefined,
+          email: email || undefined,
+          phoneNumber: phoneNumber || undefined,
+          googleMapsLink: googleMapsLink || undefined,
+          settings: {
+            ...((restaurant as { settings?: RestaurantSettings })?.settings || {}),
+            timings: { openTime, closeTime },
+          },
         },
       });
       // Keep local state in sync with saved value
@@ -302,7 +318,7 @@ export default function SettingsPage() {
                 </CardTitle>
               </div>
               <CardDescription className="text-sm font-medium text-gray-500">
-                Manage your OrderJi plan, billing features, and renewals.
+                Manage your Order<span className="text-primary">zi</span> plan, billing features, and renewals.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 px-4 sm:px-6 pb-5 sm:pb-6 relative z-10">
@@ -312,7 +328,7 @@ export default function SettingsPage() {
                     <p className="font-extrabold text-lg sm:text-xl text-gray-900 tracking-tight">
                       {subscription?.plan || "Trial"} Plan
                     </p>
-                    {daysRemaining !== null && daysRemaining > 0 ? (
+                    {isActiveSubscription ? (
                       <span className="px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
                         Active
@@ -324,22 +340,24 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <p className="text-sm text-gray-500 font-medium flex items-center gap-1.5">
-                    {daysRemaining !== null
-                      ? daysRemaining > 0
+                    {isActiveSubscription
+                      ? daysRemaining !== null && daysRemaining > 0
                         ? <><Check className="w-4 h-4 text-green-500" /> {daysRemaining} days remaining in your billing cycle</>
-                        : "Your subscription has expired."
-                      : "No active subscription found"}
+                        : <><Check className="w-4 h-4 text-green-500" /> Trial active — expiry date loading&hellip;</>
+                      : daysRemaining === 0
+                        ? "Your subscription has expired."
+                        : "No active subscription found"}
                   </p>
                 </div>
                 <Link href="/admin/subscription-expired">
                   <Button
                     className={cn(
                       "w-full sm:w-auto shadow-sm hover:shadow-md transition-all font-semibold",
-                      daysRemaining === null || daysRemaining <= 0 ? "animate-pulse" : ""
+                      !isActiveSubscription ? "animate-pulse" : ""
                     )}
                     size="lg"
                   >
-                    {daysRemaining !== null && daysRemaining > 0 ? "Upgrade / Renew" : "Subscribe Now"}
+                    {isActiveSubscription ? "Upgrade / Renew" : "Subscribe Now"}
                   </Button>
                 </Link>
               </div>
@@ -591,6 +609,30 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t mt-2">
+                <h3 className="text-sm font-semibold text-muted-foreground">Operating Hours</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <Label>Opening Time</Label>
+                    <Input
+                      type="time"
+                      value={openTime}
+                      onChange={(e) => setOpenTime(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label>Closing Time</Label>
+                    <Input
+                      type="time"
+                      value={closeTime}
+                      onChange={(e) => setCloseTime(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t mt-2">
                 <h3 className="text-sm font-semibold text-muted-foreground">Contact & Regulatory Information</h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -665,7 +707,6 @@ export default function SettingsPage() {
           {restaurantId && (
             <LogoSelector
               restaurantId={restaurantId}
-              restaurantType={shopType}
             />
           )}
 

@@ -23,7 +23,7 @@ export default function KitchenKDSPage() {
   const [_, setLocation] = useLocation();
   const { restaurantId, user, logout } = useAuth();
   const { data: restaurant } = useRestaurant(restaurantId);
-  const { data: orders, isLoading, refetch } = useKitchenOrders(restaurantId);
+  const { data: orders, isLoading, refetch, isRefetching } = useKitchenOrders(restaurantId);
   const startOrder = useKitchenStartOrder(restaurantId);
   const completeOrder = useKitchenCompleteOrder(restaurantId);
 
@@ -64,6 +64,13 @@ export default function KitchenKDSPage() {
   const handleLogout = async () => {
     await logout();
     setLocation("/auth");
+  };
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setTimeout(() => setIsRefreshing(false), 1000);
   };
 
   const { t, language } = useLanguage();
@@ -145,7 +152,7 @@ export default function KitchenKDSPage() {
                   {t("kitchen.table")} {order.table.tableNumber}
                 </>
               ) : (
-                order.guestName || `#${order.id.slice(-4)}`
+                order.guestName || `#${order.orderNumber ? String(order.orderNumber).padStart(4, "0") : order.id.slice(-4)}`
               )}
               {urgent && <AlertCircle className="w-5 h-5 text-gray-500" />}
             </CardTitle>
@@ -376,10 +383,11 @@ export default function KitchenKDSPage() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => refetch()}
+            onClick={handleRefresh}
+            disabled={isRefetching || isRefreshing}
             className="bg-white border-gray-300 hover:bg-gray-50"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={cn("w-4 h-4", (isRefetching || isRefreshing) && "animate-spin")} />
           </Button>
 
           <LanguageSelector className="bg-white text-black" />

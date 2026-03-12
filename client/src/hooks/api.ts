@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import type {
@@ -29,6 +29,7 @@ import type {
   Modifier,
   ModifierGroup,
   Variant,
+  MenuSuggestion,
 } from "@/types";
 
 // === Extraction Types ===
@@ -71,6 +72,7 @@ export const queryKeys = {
   restaurant: (id: string | null) => ["restaurant", id] as const,
   restaurantBySlug: (slug: string | null) => ["restaurant-by-slug", slug] as const,
   menuPublic: (slug: string | null, dietaryFilter?: 'veg' | 'non-veg' | 'any' | null) => ["menu-public", slug, dietaryFilter] as const,
+  menuSuggestions: (query: string) => ["menu-suggestions", query] as const,
   orders: (restaurantId: string | null, opts?: Record<string, unknown>) => ["orders", restaurantId, opts] as const,
   cancelledOrdersSummary: (restaurantId: string | null, opts?: Record<string, unknown>) => ["cancelled-orders-summary", restaurantId, opts] as const,
   ordersKitchen: (restaurantId: string | null) => ["orders-kitchen", restaurantId] as const,
@@ -159,12 +161,45 @@ export function usePublicMenu(slug: string | null, dietaryFilter?: 'veg' | 'non-
 }
 
 // === Protected Menu ===
+export function useMenuSuggestions(query: string = "") {
+  return useInfiniteQuery({
+    queryKey: queryKeys.menuSuggestions(query),
+    queryFn: async ({ pageParam = 1 }) => {
+      const q = new URLSearchParams();
+      if (query) q.set('q', query);
+      q.set('page', String(pageParam));
+      q.set('limit', '20');
+      
+      return api.get<{
+        items: MenuSuggestion[];
+        pagination: {
+          total: number;
+          limit: number;
+          offset: number;
+          hasMore: boolean;
+          currentPage: number;
+          totalPages: number;
+        }
+      }>(`/api/menu/suggestions?${q.toString()}`);
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.hasMore) {
+        return lastPage.pagination.currentPage + 1;
+      }
+      return undefined;
+    },
+    staleTime: 60000,
+  });
+}
+
 export function useMenuCategories(restaurantId: string | null, slug: string | null) {
   return useQuery({
     queryKey: ["menu-categories", restaurantId, slug],
     queryFn: async () => {
       if (!slug) return { categories: [], items: [] };
-      const data = await api.get<MenuData>(`/api/menu/public/${slug}`);
+      // Use cache-buster to bypass the 60s max-age Cache-Control header on the public endpoint
+      const data = await api.get<MenuData>(`/api/menu/public/${slug}?_t=${Date.now()}`);
       return {
         categories: data.categories || [],
         items: data.items || [],
@@ -187,8 +222,6 @@ export function useCreateCategory(restaurantId: string | null) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["menu-public"] });
       qc.invalidateQueries({ queryKey: ["menu-categories"] });
-      qc.refetchQueries({ queryKey: ["menu-public"], type: "active" });
-      qc.refetchQueries({ queryKey: ["menu-categories"], type: "active" });
       toast.success("Category created successfully");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to create category"),
@@ -203,8 +236,6 @@ export function useUpdateCategory(restaurantId: string | null) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["menu-public"] });
       qc.invalidateQueries({ queryKey: ["menu-categories"] });
-      qc.refetchQueries({ queryKey: ["menu-public"], type: "active" });
-      qc.refetchQueries({ queryKey: ["menu-categories"], type: "active" });
       toast.success("Category updated successfully");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to update category"),
@@ -219,8 +250,6 @@ export function useDeleteCategory(restaurantId: string | null) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["menu-public"] });
       qc.invalidateQueries({ queryKey: ["menu-categories"] });
-      qc.refetchQueries({ queryKey: ["menu-public"], type: "active" });
-      qc.refetchQueries({ queryKey: ["menu-categories"], type: "active" });
       toast.success("Category deleted successfully");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to delete category"),
@@ -233,8 +262,8 @@ export function useCreateMenuItem(restaurantId: string | null) {
     mutationFn: (data: { categoryId: string; name: string; description?: string; price: number; imageUrl?: string; isAvailable?: boolean; dietaryTags?: string[] }) =>
       api.post<{ item: MenuItem }>(`/api/menu/${restaurantId}/items`, data).then((r) => r.item),
     onSuccess: () => {
-      qc.refetchQueries({ queryKey: ["menu-public"], type: "active" });
-      qc.refetchQueries({ queryKey: ["menu-categories"], type: "active" });
+      qc.invalidateQueries({ queryKey: ["menu-public"] });
+      qc.invalidateQueries({ queryKey: ["menu-categories"] });
       toast.success("Item added to menu");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to create item"),
@@ -247,8 +276,8 @@ export function useUpdateMenuItem(restaurantId: string | null) {
     mutationFn: ({ itemId, data }: { itemId: string; data: Partial<MenuItem> }) =>
       api.put<{ item: MenuItem }>(`/api/menu/${restaurantId}/items/${itemId}`, data).then((r) => r.item),
     onSuccess: () => {
-      qc.refetchQueries({ queryKey: ["menu-public"], type: "active" });
-      qc.refetchQueries({ queryKey: ["menu-categories"], type: "active" });
+      qc.invalidateQueries({ queryKey: ["menu-public"] });
+      qc.invalidateQueries({ queryKey: ["menu-categories"] });
       toast.success("Item updated successfully");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to update item"),
@@ -261,8 +290,8 @@ export function useDeleteMenuItem(restaurantId: string | null) {
     mutationFn: (itemId: string) =>
       api.delete<{ item: MenuItem; deleted: boolean }>(`/api/menu/${restaurantId}/items/${itemId}`),
     onSuccess: () => {
-      qc.refetchQueries({ queryKey: ["menu-public"], type: "active" });
-      qc.refetchQueries({ queryKey: ["menu-categories"], type: "active" });
+      qc.invalidateQueries({ queryKey: ["menu-public"] });
+      qc.invalidateQueries({ queryKey: ["menu-categories"] });
       toast.success("Item deleted successfully");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to delete item"),
@@ -275,8 +304,8 @@ export function useUpdateMenuItemAvailability(restaurantId: string | null) {
     mutationFn: ({ itemId, isAvailable }: { itemId: string; isAvailable: boolean }) =>
       api.patch<{ item: MenuItem }>(`/api/menu/${restaurantId}/items/${itemId}/availability`, { isAvailable }).then((r) => r.item),
     onSuccess: (item) => {
-      qc.refetchQueries({ queryKey: ["menu-public"], type: "active" });
-      qc.refetchQueries({ queryKey: ["menu-categories"], type: "active" });
+      qc.invalidateQueries({ queryKey: ["menu-public"] });
+      qc.invalidateQueries({ queryKey: ["menu-categories"] });
       toast.success(`${item.name} is now ${item.isAvailable ? "available" : "unavailable"}`);
     },
     onError: (e: Error) => toast.error(e.message || "Failed to update availability"),
@@ -429,7 +458,6 @@ export function useCreateOrder(restaurantId: string | null) {
         qc.invalidateQueries({ queryKey: queryKeys.ordersStats(restaurantId) });
         qc.invalidateQueries({ queryKey: queryKeys.tables(restaurantId) });
       }
-      toast.success("Order created successfully");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to create order"),
   });
@@ -459,7 +487,6 @@ export function useUpdateOrder(restaurantId: string | null) {
         qc.invalidateQueries({ queryKey: queryKeys.ordersKitchen(restaurantId) });
         qc.invalidateQueries({ queryKey: queryKeys.ordersStats(restaurantId) });
       }
-      toast.success("Order updated");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to update order"),
   });
@@ -571,7 +598,6 @@ export function useAddOrderItems(restaurantId: string | null) {
         qc.invalidateQueries({ queryKey: ["orders", restaurantId] });
         qc.invalidateQueries({ queryKey: queryKeys.ordersKitchen(restaurantId) });
       }
-      toast.success("Items added to order");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to add items"),
   });
@@ -587,7 +613,6 @@ export function useRemoveOrderItem(restaurantId: string | null) {
         qc.invalidateQueries({ queryKey: ["orders", restaurantId] });
         qc.invalidateQueries({ queryKey: queryKeys.ordersKitchen(restaurantId) });
       }
-      toast.success("Item removed from order");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to remove item"),
   });
@@ -630,7 +655,6 @@ export function useKitchenStartOrder(restaurantId: string | null) {
         qc.invalidateQueries({ queryKey: queryKeys.ordersKitchen(restaurantId) });
         qc.invalidateQueries({ queryKey: ["orders", restaurantId] });
       }
-      toast.success("Order started");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to start order"),
   });
@@ -646,7 +670,6 @@ export function useKitchenCompleteOrder(restaurantId: string | null) {
         qc.invalidateQueries({ queryKey: queryKeys.ordersKitchen(restaurantId) });
         qc.invalidateQueries({ queryKey: ["orders", restaurantId] });
       }
-      toast.success("Order ready for serving");
     },
     onError: (e: Error) => toast.error(e.message || "Failed to complete order"),
   });
@@ -745,7 +768,6 @@ export function useAssignWaiterToTable(restaurantId: string | null) {
           return prev.map((t) => (t.id === table.id ? table : t));
         });
       }
-      toast.success("Waiter assigned successfully");
     },
 
     onSettled: () => {
@@ -774,7 +796,6 @@ export function useUpdateTableStatus(restaurantId: string | null) {
       api.patch<{ table: Table }>(`/api/restaurants/${restaurantId}/tables/${tableId}/status`, { status }).then((r) => r.table),
     onSuccess: (table) => {
       if (restaurantId) qc.invalidateQueries({ queryKey: queryKeys.tables(restaurantId) });
-      toast.success(`Table ${table.tableNumber} is now ${table.currentStatus.toLowerCase()}`);
     },
     onError: (e: Error) => toast.error(e.message || "Failed to update table"),
   });
@@ -974,6 +995,7 @@ export function useTransactions(
     fromDate?: string;
     toDate?: string;
     paymentMethod?: string;
+    orderType?: string;
     search?: string;
   }
 ) {
@@ -983,6 +1005,7 @@ export function useTransactions(
   if (opts?.fromDate) params.set("fromDate", opts.fromDate);
   if (opts?.toDate) params.set("toDate", opts.toDate);
   if (opts?.paymentMethod) params.set("paymentMethod", opts.paymentMethod);
+  if (opts?.orderType) params.set("orderType", opts.orderType);
   if (opts?.search) params.set("search", opts.search);
   const q = params.toString();
 
@@ -1002,6 +1025,7 @@ export function useTransactions(
           order: {
             id: string;
             orderType: string;
+            status?: string;
             guestName?: string;
             table?: {
               tableNumber: string;
@@ -1047,6 +1071,7 @@ export function useTransactionDetail(restaurantId: string | null, transactionId:
           order: {
             id: string;
             orderType: string;
+            status?: string;
             guestName?: string;
             items: Array<{
               id: string;
@@ -1080,11 +1105,13 @@ export function useExportTransactionsCSV(restaurantId: string | null) {
       fromDate?: string;
       toDate?: string;
       paymentMethod?: string;
+      orderType?: string;
     }) => {
       const params = new URLSearchParams();
       if (opts?.fromDate) params.set("fromDate", opts.fromDate);
       if (opts?.toDate) params.set("toDate", opts.toDate);
       if (opts?.paymentMethod) params.set("paymentMethod", opts.paymentMethod);
+      if (opts?.orderType) params.set("orderType", opts.orderType);
       const q = params.toString();
 
       const blob = await api.getBlob(

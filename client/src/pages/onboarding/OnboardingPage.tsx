@@ -219,7 +219,7 @@ export default function OnboardingPage() {
             key: order.keyId,
             amount: order.amount * 100,
             currency: order.currency,
-            name: "OrderJi",
+            name: "Orderzi",
             description: `${formData.plan} Subscription`,
             order_id: order.razorpayOrderId,
             handler: async (paymentResponse: any) => {
@@ -229,7 +229,7 @@ export default function OnboardingPage() {
                   razorpayPaymentId: paymentResponse.razorpay_payment_id,
                   razorpaySignature: paymentResponse.razorpay_signature,
                 });
-                toast.success("Welcome to OrderJi! Payment successful.");
+                toast.success(<span>Welcome to Order<span className="text-primary">zi</span>! Payment successful.</span>);
                 setIsSubmitting(false);
                 queryClient.invalidateQueries({ queryKey: ["subscription"] });
                 setLocation("/dashboard");
@@ -264,7 +264,7 @@ export default function OnboardingPage() {
           setIsSubmitting(false);
         }
       } else {
-        toast.success("Welcome to OrderJi! Your restaurant is ready.");
+        toast.success(<span>Welcome to Order<span className="text-primary">zi</span>! Your restaurant is ready.</span>);
         setIsSubmitting(false);
         setLocation("/dashboard");
       }
@@ -391,7 +391,7 @@ export default function OnboardingPage() {
                           "flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 items-center transition-all",
                           fieldErrors.slug && "border-destructive focus-within:ring-destructive"
                         )}>
-                          <span className="text-muted-foreground mr-1.5 font-medium select-none hidden sm:inline">orderji.app/r/</span>
+                          <span className="text-muted-foreground mr-1.5 font-medium select-none hidden sm:inline">order<span className="text-primary">zi</span>.app/r/</span>
                           <span className="text-muted-foreground mr-1.5 font-medium select-none sm:hidden">/r/</span>
                           <input
                             className="flex-1 bg-transparent border-none outline-none focus:ring-0 p-0 text-sm font-medium w-full"

@@ -19,7 +19,7 @@ export default function QueueRegistrationPage() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [partySize, setPartySize] = useState(2);
+  const [partySize, setPartySize] = useState<number | "">(2);
   const [notes, setNotes] = useState("");
   const [joinedEntry, setJoinedEntry] = useState<QueueEntry | null>(null);
 
@@ -36,7 +36,7 @@ export default function QueueRegistrationPage() {
     try {
       const entry = await registerQueue.mutateAsync({
         guestName: name.trim(),
-        partySize,
+        partySize: Number(partySize) || 1,
         phoneNumber: phone.trim() || undefined,
         notes: notes.trim() || undefined,
       });
@@ -73,19 +73,34 @@ export default function QueueRegistrationPage() {
 
   if (currentEntry) {
     const isCalled = currentEntry.status === "CALLED";
+    const isSeated = currentEntry.status === "SEATED";
+    const isReady = isCalled || isSeated;
 
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
-        <Card className={`w-full max-w-md text-center p-8 border-2 ${isCalled ? "border-primary ring-4 ring-primary/20" : "border-primary/20"}`}>
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isCalled ? "bg-primary" : "bg-primary/10"}`}>
-            {isCalled ? (
+        <Card className={`w-full max-w-md text-center p-8 border-2 ${isReady ? "border-primary ring-4 ring-primary/20" : "border-primary/20"}`}>
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isReady ? "bg-primary" : "bg-primary/10"}`}>
+            {isSeated ? (
+               <CheckCircle2 className="w-10 h-10 text-white" />
+            ) : isCalled ? (
               <CheckCircle2 className="w-10 h-10 text-white animate-pulse" />
             ) : (
               <Clock className="w-10 h-10 text-primary animate-pulse" />
             )}
           </div>
 
-          {isCalled ? (
+          {isSeated ? (
+            <>
+              <CardTitle className="text-2xl mb-2 font-heading text-primary">You are Seated!</CardTitle>
+              <CardDescription className="text-base mb-6">
+                {currentEntry.table ? (
+                   <>You have been assigned to <span className="font-bold text-foreground">Table {currentEntry.table.tableNumber}</span>. Enjoy your meal!</>
+                ) : (
+                  <>You have been assigned a table. Enjoy your meal!</>
+                )}
+              </CardDescription>
+            </>
+          ) : isCalled ? (
             <>
               <CardTitle className="text-2xl mb-2 font-heading text-primary">Your Table is Ready!</CardTitle>
               <CardDescription className="text-base mb-6">
@@ -103,20 +118,28 @@ export default function QueueRegistrationPage() {
             </>
           )}
 
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            {currentEntry.position && (
-              <div className="bg-muted rounded-lg p-4">
-                <p className="text-sm text-muted-foreground uppercase tracking-wider font-bold mb-1">Position</p>
-                <p className="text-3xl font-bold text-primary font-heading">#{currentEntry.position}</p>
-              </div>
-            )}
-            <div className="bg-muted rounded-lg p-4">
-              <p className="text-sm text-muted-foreground uppercase tracking-wider font-bold mb-1">Est. Wait</p>
-              <p className="text-3xl font-bold text-primary font-heading">
-                {currentEntry.estimatedWaitMinutes ?? "—"} min
-              </p>
+          {!isSeated && (
+            <div className={`grid ${currentEntry.position && currentEntry.position > 0 ? "grid-cols-2" : "grid-cols-1"} gap-4 mb-6`}>
+              {currentEntry.position !== undefined && currentEntry.position > 0 && (
+                <div className="bg-muted rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground uppercase tracking-wider font-bold mb-1">Position</p>
+                  <p className="text-3xl font-bold text-primary font-heading">#{currentEntry.position}</p>
+                </div>
+              )}
+              {(!isCalled || (currentEntry.estimatedWaitMinutes !== undefined && currentEntry.estimatedWaitMinutes > 0)) && (
+                 <div className="bg-muted rounded-lg p-4">
+                   <p className="text-sm text-muted-foreground uppercase tracking-wider font-bold mb-1">Est. Wait</p>
+                   {isCalled ? (
+                     <p className="text-3xl font-bold text-primary font-heading">Now</p>
+                   ) : (
+                     <p className="text-3xl font-bold text-primary font-heading">
+                       {currentEntry.estimatedWaitMinutes ?? "—"} min
+                     </p>
+                   )}
+                 </div>
+              )}
             </div>
-          </div>
+          )}
 
           <div className="bg-muted/50 rounded-lg p-4 mb-6 text-left">
             <div className="flex justify-between text-sm mb-2">
@@ -129,7 +152,7 @@ export default function QueueRegistrationPage() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Status</span>
-              <Badge variant={isCalled ? "default" : "secondary"}>
+              <Badge variant={isReady ? "default" : "secondary"}>
                 {currentEntry.status}
               </Badge>
             </div>
@@ -144,103 +167,89 @@ export default function QueueRegistrationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
-      <div className="text-center mb-8">
-        <div className="flex justify-center mb-4">
-          <div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20">
-            <ChefHat className="w-8 h-8 text-primary-foreground" />
+    <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-3 sm:p-4">
+      <div className="text-center mb-6 sm:mb-8">
+        <div className="flex justify-center mb-3 sm:mb-4">
+          <div className="bg-primary p-2 sm:p-3 rounded-2xl shadow-lg shadow-primary/20">
+            <ChefHat className="w-6 h-6 sm:w-8 sm:h-8 text-primary-foreground" />
           </div>
         </div>
-        <h1 className="text-3xl font-heading font-bold mb-2">Join the Queue</h1>
-        <p className="text-muted-foreground">
-          {restaurant.name} • Register below to save your spot
-        </p>
+        <h1 className="text-xl sm:text-3xl font-heading font-bold mb-1 sm:mb-2">Join the Queue</h1>
+        <div className="text-xs sm:text-base text-muted-foreground flex flex-col sm:block mt-1 sm:mt-2">
+          <span className="font-medium text-sm sm:text-base">{restaurant.name}</span>
+          <span className="hidden sm:inline"> • </span>
+          <span className="mt-1 sm:mt-0">We'll notify you when your table is ready.</span>
+        </div>
       </div>
 
       <Card className="w-full max-w-md shadow-xl border-none">
-        <CardHeader>
-          <CardTitle>Guest Details</CardTitle>
-          <CardDescription>We'll notify you when your table is ready.</CardDescription>
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-lg sm:text-xl">Guest Details</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Register below to save your spot in line.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name *</Label>
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="name" className="text-sm sm:text-base">Full Name *</Label>
               <Input
                 id="name"
                 placeholder="Enter your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="h-12 text-lg"
+                className="h-10 sm:h-12 text-sm sm:text-base"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="phone" className="text-sm sm:text-base">Phone Number</Label>
               <div className="relative">
-                <Phone className="absolute left-3 top-3.5 w-5 h-5 text-muted-foreground" />
+                <Phone className="absolute left-3 top-2.5 sm:top-3.5 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                 <Input
                   id="phone"
                   type="tel"
                   placeholder="+91 98765 43210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="pl-10 h-12 text-lg"
+                  className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">Optional - for SMS notifications</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Optional - for SMS notifications</p>
             </div>
 
-            <div className="space-y-2">
-              <Label>Party Size *</Label>
-              <div className="grid grid-cols-6 gap-2">
-                {[1, 2, 3, 4, 5, 6].map((size) => (
-                  <Button
-                    key={size}
-                    type="button"
-                    variant={partySize === size ? "default" : "outline"}
-                    className="h-12"
-                    onClick={() => setPartySize(size)}
-                  >
-                    {size}
-                  </Button>
-                ))}
-              </div>
-              {partySize >= 6 && (
-                <div className="flex items-center gap-2 mt-2">
-                  <Label htmlFor="custom-size" className="text-sm">More than 6?</Label>
-                  <Input
-                    id="custom-size"
-                    type="number"
-                    min="7"
-                    max="20"
-                    className="w-20 h-8"
-                    onChange={(e) => setPartySize(parseInt(e.target.value) || 6)}
-                  />
-                </div>
-              )}
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="party-size" className="text-sm sm:text-base">Party Size *</Label>
+              <Input
+                id="party-size"
+                type="number"
+                min="1"
+                max="20"
+                value={partySize}
+                onChange={(e) => setPartySize(e.target.value === "" ? "" : parseInt(e.target.value))}
+                className="h-10 sm:h-12 text-sm sm:text-base"
+                required
+              />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Special Requests</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="notes" className="text-sm sm:text-base">Special Requests</Label>
               <Input
                 id="notes"
                 placeholder="e.g., Birthday celebration, high chair needed"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="h-12"
+                className="h-10 sm:h-12 text-sm sm:text-base"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20"
-              disabled={registerQueue.isPending || !name.trim()}
+              className="w-full h-10 sm:h-12 mt-2 text-sm sm:text-base font-bold shadow-lg shadow-primary/20"
+              disabled={registerQueue.isPending || !name.trim() || !partySize}
             >
               {registerQueue.isPending ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
                   Joining...
                 </>
               ) : (
@@ -255,7 +264,7 @@ export default function QueueRegistrationPage() {
       </Card>
 
       <p className="mt-8 text-sm text-muted-foreground flex items-center gap-2">
-        <Users className="w-4 h-4" /> Powered by OrderJi
+        <Users className="w-4 h-4" /> Powered by Order<span className="text-primary">zi</span>
       </p>
     </div>
   );

@@ -39,7 +39,7 @@ export default function LoginPage() {
       if (role === "ADMIN") {
         await login(identifier, password);
       } else {
-        const prefix = role === "WAITER" ? "W-" : role === "KITCHEN" ? "K-" : "";
+        const prefix = role === "WAITER" ? "W" : role === "KITCHEN" ? "K" : "";
         let finalCode = staffCodeDigits;
         if (/^\d+$/.test(staffCodeDigits)) {
           finalCode = `${prefix}${staffCodeDigits}`;
@@ -47,7 +47,7 @@ export default function LoginPage() {
         await staffLogin(finalCode, staffPasscode);
       }
 
-      toast.success("Welcome back to OrderJi!");
+      toast.success(<span>Welcome back to Order<span className="text-primary">zi</span>!</span>);
       setLocation("/app");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Login failed");
@@ -61,7 +61,7 @@ export default function LoginPage() {
           <div className="space-y-4 text-center lg:text-left">
             <Link href="/">
               <div className="inline-flex items-center gap-3 mb-6 cursor-pointer hover:opacity-90 transition-opacity">
-                <img src="/logo.png" alt="OrderJi Logo" className="w-12 h-12 lg:w-10 lg:h-10 object-contain drop-shadow-md" />
+                <img src="/logo.png" alt="Orderzi Logo" className="w-12 h-12 lg:w-10 lg:h-10 object-contain drop-shadow-md" />
                 <div className="hidden sm:block text-3xl font-heading font-black tracking-tighter">
                   <span className="text-foreground dark:text-white">Order</span><span className="text-primary">Ji</span>
                 </div>
@@ -130,17 +130,27 @@ export default function LoginPage() {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="staffCode">Staff Code</Label>
-                  <Input
-                    id="staffCode"
-                    type="text"
-                    placeholder="Enter Staff Code"
-                    value={staffCodeDigits}
-                    onChange={(e) => setStaffCodeDigits(e.target.value)}
-                    required
-                    className="h-11 bg-muted/30"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground font-medium">
+                      {role === "WAITER" ? "W" : "K"}
+                    </div>
+                    <Input
+                      id="staffCode"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="e.g. 1001"
+                      value={staffCodeDigits}
+                      onChange={(e) => {
+                        const numericVal = e.target.value.replace(/\D/g, "");
+                        setStaffCodeDigits(numericVal);
+                      }}
+                      required
+                      className="h-11 bg-muted/30 pl-8"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">

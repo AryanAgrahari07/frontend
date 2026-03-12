@@ -8,6 +8,7 @@ import { useRestaurant, useTables, useGenerateQR, useGenerateAllQR, useQRStats }
 import { useState } from "react";
 import type { Table as TableType, QRCodeData } from "@/types";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function QRCodesPage() {
   const { restaurantId } = useAuth();
@@ -46,6 +47,18 @@ export default function QRCodesPage() {
     } finally {
       setLoadingTableId(null);
     }
+  };
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    // Since MainQR generates new ones, we assume refetching is triggered elsewhere or this just animates.
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
+  const handleGenerateMainQRClick = async () => {
+    handleRefresh();
+    handleGenerateMainQR();
   };
 
   const handleGenerateAllQRs = async () => {
@@ -142,8 +155,8 @@ export default function QRCodesPage() {
                     >
                       <Download className="w-3.5 h-3.5 mr-1.5" /> Download
                     </Button>
-                    <Button variant="outline" onClick={handleGenerateMainQR} className="w-full sm:w-auto h-8 text-xs">
-                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Regenerate
+                    <Button variant="outline" onClick={handleGenerateMainQRClick} disabled={generateQR.isPending || isRefreshing} className="w-full sm:w-auto h-8 text-xs">
+                      <RefreshCw className={cn("w-3.5 h-3.5 mr-1.5", (generateQR.isPending || isRefreshing) && "animate-spin")} /> Regenerate
                     </Button>
                   </>
                 )}

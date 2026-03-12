@@ -89,7 +89,7 @@ export default function SubscriptionExpiredPage() {
                 key: order.keyId,
                 amount: order.amount * 100,
                 currency: order.currency,
-                name: "OrderJi",
+                name: "Orderzi",
                 description: `${planId} Subscription Renewal`,
                 order_id: order.razorpayOrderId,
                 handler: async (response: any) => {
@@ -175,7 +175,7 @@ export default function SubscriptionExpiredPage() {
                     <p className="max-w-xl mx-auto text-lg text-gray-500">
                         {isActive
                             ? `You currently have an active ${subscription?.plan} plan (${daysRemaining} days left). Choose a professional plan to permanently unlock all features or renew your access.`
-                            : "Your OrderJi subscription for this restaurant has expired or is invalid. Please select a plan to renew and regain access to the portal."}
+                            : <span>Your Order<span className="text-primary">zi</span> subscription for this restaurant has expired or is invalid. Please select a plan to renew and regain access to the portal.</span>}
                     </p>
                 </div>
 

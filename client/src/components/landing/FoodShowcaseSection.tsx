@@ -20,7 +20,7 @@ export default function FoodShowcaseSection() {
               Feed the <br /><span className="text-primary italic">Hunger.</span>
             </h2>
             <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/60 font-medium leading-relaxed">
-              Your menu should be as fast as your kitchen. OrderJi provides a high-intensity visual experience that converts browsers into diners in seconds.
+              Your menu should be as fast as your kitchen. Order<span className="text-primary">zi</span> provides a high-intensity visual experience that converts browsers into diners in seconds.
             </p>
             <div className="space-y-4 sm:space-y-5 md:space-y-6">
               <div className="flex items-center gap-4 sm:gap-5 md:gap-6 p-4 sm:p-5 md:p-6 bg-white/5 border-l-4 sm:border-l-6 md:border-l-8 border-veg transition-all hover:bg-white/10">

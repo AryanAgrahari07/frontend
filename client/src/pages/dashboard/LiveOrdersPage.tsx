@@ -21,6 +21,7 @@ import {
   ExternalLink,
   MinusCircle,
   Percent,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,7 +35,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
@@ -56,6 +57,7 @@ import {
   useUpdateOrder,
   useRemoveOrderServiceCharge,
   useRestaurantLogo,
+  useAddOrderItems,
 } from "@/hooks/api";
 import type { Order, MenuItem, OrderStatus, PaymentMethod } from "@/types";
 import type { POSCartLineItem } from "@/types/pos";
@@ -102,6 +104,7 @@ export default function LiveOrdersPage() {
     data: ordersData,
     isLoading,
     refetch,
+    isRefetching,
   } = useOrders(restaurantId, { limit: pageSize, offset });
 
   const { data: menuData } = useMenuCategories(
@@ -119,7 +122,10 @@ export default function LiveOrdersPage() {
   const updateOrder = useUpdateOrder(restaurantId);
   const removeServiceCharge = useRemoveOrderServiceCharge(restaurantId);
 
+  const addOrderItems = useAddOrderItems(restaurantId);
+
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Order | null>(null);
   const [isBillingOpen, setIsBillingOpen] = useState(false);
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
   const [manualCart, setManualCart] = useState<POSCartLineItem[]>([]);
@@ -144,6 +150,21 @@ export default function LiveOrdersPage() {
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const closeOrder = useCloseOrder(restaurantId);
+
+  // Manual wrapper for updateOrderStatus to track local READY updates
+  const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
+    if (status === "READY") {
+      localReadyOrdersRef.current.add(orderId);
+    }
+    await updateStatus.mutateAsync({ orderId, status });
+  };
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
 
   const isAdmin = user?.role === "owner" || user?.role === "admin" || user?.role === "platform_admin";
 
@@ -192,6 +213,79 @@ export default function LiveOrdersPage() {
   const totalPages = pagination?.totalPages ?? 1;
   const hasNextPage = pagination?.hasMore ?? false;
   const hasPrevPage = currentPage > 1;
+
+  // Track notified unassigned ready orders
+  const notifiedUnassignedReadyRef = useRef<Set<string>>(new Set());
+
+  // Track orders that the local user marked as READY (to prevent self-notifying)
+  const localReadyOrdersRef = useRef<Set<string>>(new Set());
+
+  // Notify admin when an unassigned order becomes READY
+  useEffect(() => {
+    if (!isAdmin || !tables || !orders || orders.length === 0) return;
+
+    // First load: prime the set without showing notifications for existing orders
+    if (notifiedUnassignedReadyRef.current.size === 0) {
+      orders.forEach((o: Order) => {
+        if (o.status === "READY" || o.status === "SERVED" || o.status === "CANCELLED" || o.isClosed) {
+          notifiedUnassignedReadyRef.current.add(o.id);
+        }
+      });
+      // If there's literally no READY orders at first boot, just set an initial flag
+      // by adding a dummy string so it doesn't stay size 0
+      notifiedUnassignedReadyRef.current.add("__init__");
+      return;
+    }
+
+    const readyOrders = orders.filter((o: Order) => o.status === "READY");
+
+    readyOrders.forEach((order: Order) => {
+      // Skip if already notified
+      if (notifiedUnassignedReadyRef.current.has(order.id)) return;
+
+      // Determine if it has a waiter
+      const hasStaffPlacer = !!(order.placedByStaffId || order.placedByStaff?.id);
+
+      let hasTableWaiter = false;
+      if (order.tableId || order.table?.id) {
+        const tableId = order.tableId || order.table?.id;
+        const matchingTable = tables.find(t => t.id === tableId);
+        if (matchingTable && (matchingTable.assignedWaiterId || matchingTable.assignedWaiter?.id)) {
+          hasTableWaiter = true;
+        }
+      }
+
+      const isUnassigned = !hasStaffPlacer && !hasTableWaiter;
+
+      // Only show toast if the order was NOT just updated by the current user locally
+      const isLocallyUpdated = localReadyOrdersRef.current.has(order.id);
+
+      if (isUnassigned && !isLocallyUpdated) {
+        notifiedUnassignedReadyRef.current.add(order.id);
+
+        const orderNum = order.orderNumber ? String(order.orderNumber).padStart(4, "0") : order.id.slice(-4);
+        const title = order.table?.tableNumber
+          ? `Table ${order.table.tableNumber} Ready`
+          : `Order #${orderNum} Ready`;
+
+        toast.info(
+          `${title} is READY to serve but has no assigned waiter.`,
+          {
+            duration: 8000,
+            icon: <Utensils className="w-5 h-5 text-blue-500" />,
+          }
+        );
+
+        try {
+          const audio = new Audio("/notification.mp3");
+          audio.play().catch(() => { });
+        } catch { }
+      } else {
+        // Automatically mark assigned ones so we only track newly ready ones
+        notifiedUnassignedReadyRef.current.add(order.id);
+      }
+    });
+  }, [orders, tables, isAdmin]);
 
   // Filter active orders (not paid/cancelled)
   const activeOrders = useMemo(() => {
@@ -335,13 +429,86 @@ export default function LiveOrdersPage() {
     setManualCart((prev) => [...prev, cartLine]);
     setCustomizingItem(null);
   };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (manualCart.length === 0) {
       toast.error("Please add items to the order");
       return;
     }
-    toast.success("Order saved!");
+
+    try {
+      if (selectedOrderForEdit) {
+        // Add items to existing order
+        await addOrderItems.mutateAsync({
+          orderId: selectedOrderForEdit.id,
+          items: manualCart.map((item) => ({
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            variantId: item.variantId,
+            modifierIds: item.modifierIds,
+          })),
+        });
+        toast.success(`Items saved to Order #${selectedOrderForEdit.orderNumber || selectedOrderForEdit.id.slice(-4)}`);
+      } else {
+        const orderTypeMap = {
+          "dine-in": "DINE_IN",
+          "takeaway": "TAKEAWAY",
+          "delivery": "DELIVERY",
+        };
+
+        const paymentStatusMap = {
+          "cash": "PAID",
+          "card": "PAID",
+          "upi": "PAID",
+          "due": "DUE",
+        };
+
+        const order = await createOrder.mutateAsync({
+          tableId: orderMethod === "dine-in" ? selectedTableId : undefined,
+          orderType: orderTypeMap[orderMethod] as "DINE_IN" | "TAKEAWAY" | "DELIVERY",
+          waiveServiceCharge: orderMethod === "dine-in" ? waiveServiceCharge : false,
+          items: manualCart.map((item) => ({
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            variantId: item.variantId,
+            modifierIds: item.modifierIds,
+          })),
+          assignedWaiterId: selectedWaiterId || undefined,
+          paymentMethod: paymentMethod.toUpperCase() as "CASH" | "CARD" | "UPI" | "DUE",
+          paymentStatus: paymentStatusMap[paymentMethod] as "PAID" | "DUE",
+          notes: cookingNote.trim() || undefined,
+        });
+
+        // Apply discount if set
+        const discountNum = parseFloat(discountAmount || "0");
+        if (isAdmin && discountAmount.trim() && !Number.isNaN(discountNum) && discountNum > 0) {
+          try {
+            await updateOrder.mutateAsync({
+              orderId: order.id,
+              data: { discountAmount: discountNum },
+            });
+          } catch {
+            toast.error("Order created, but failed to apply discount");
+          }
+        }
+
+        const tableDisplayNum = tables?.find((t) => t.id === selectedTableId)?.tableNumber || selectedTableId;
+        toast.success(`Order saved! ${orderMethod === "dine-in" ? `Table ${tableDisplayNum}` : ""}`);
+      }
+
+      await refetch();
+      setManualCart([]);
+      setSelectedTableId("");
+      setSelectedWaiterId(null);
+      setPaymentMethod("due");
+      setCookingNote("");
+      setDiscountAmount("");
+      setWaiveServiceCharge(false);
+      setIsNewOrderOpen(false);
+      setShowMobilePOS(false);
+      setSelectedOrderForEdit(null);
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
 
   const handleSaveAndPrint = async () => {
@@ -357,59 +524,81 @@ export default function LiveOrdersPage() {
     }
 
     try {
-      const orderTypeMap = {
-        "dine-in": "DINE_IN",
-        "takeaway": "TAKEAWAY",
-        "delivery": "DELIVERY",
-      };
+      let order: any;
 
-      const paymentStatusMap = {
-        "cash": "PAID",
-        "card": "PAID",
-        "upi": "PAID",
-        "due": "DUE",
-      };
+      if (selectedOrderForEdit) {
+        const response = await addOrderItems.mutateAsync({
+          orderId: selectedOrderForEdit.id,
+          items: manualCart.map((item) => ({
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            variantId: item.variantId,
+            modifierIds: item.modifierIds,
+          })),
+        });
+        order = response.order;
+        toast.success(`Items added & KOT printed for Order #${order.orderNumber || order.id.slice(-4)}`);
+      } else {
+        const orderTypeMap = {
+          "dine-in": "DINE_IN",
+          "takeaway": "TAKEAWAY",
+          "delivery": "DELIVERY",
+        };
 
-      const order = await createOrder.mutateAsync({
-        tableId: orderMethod === "dine-in" ? selectedTableId : undefined,
-        orderType: orderTypeMap[orderMethod] as "DINE_IN" | "TAKEAWAY" | "DELIVERY",
-        waiveServiceCharge: orderMethod === "dine-in" ? waiveServiceCharge : false,
-        items: manualCart.map((item) => ({
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-          variantId: item.variantId,
-          modifierIds: item.modifierIds,
-        })),
-        assignedWaiterId: selectedWaiterId || undefined,
-        paymentMethod: paymentMethod.toUpperCase() as "CASH" | "CARD" | "UPI" | "DUE",
-        paymentStatus: paymentStatusMap[paymentMethod] as "PAID" | "DUE",
-        notes: cookingNote.trim() || undefined,
-      });
+        const paymentStatusMap = {
+          "cash": "PAID",
+          "card": "PAID",
+          "upi": "PAID",
+          "due": "DUE",
+        };
 
-      // Apply discount if set
-      const discountNum = parseFloat(discountAmount || "0");
-      if (isAdmin && discountAmount.trim() && !Number.isNaN(discountNum) && discountNum > 0) {
-        try {
-          await updateOrder.mutateAsync({
-            orderId: order.id,
-            data: { discountAmount: discountNum },
-          });
-        } catch {
-          toast.error("Order created, but failed to apply discount");
+        order = await createOrder.mutateAsync({
+          tableId: orderMethod === "dine-in" ? selectedTableId : undefined,
+          orderType: orderTypeMap[orderMethod] as "DINE_IN" | "TAKEAWAY" | "DELIVERY",
+          waiveServiceCharge: orderMethod === "dine-in" ? waiveServiceCharge : false,
+          items: manualCart.map((item) => ({
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            variantId: item.variantId,
+            modifierIds: item.modifierIds,
+          })),
+          assignedWaiterId: selectedWaiterId || undefined,
+          paymentMethod: paymentMethod.toUpperCase() as "CASH" | "CARD" | "UPI" | "DUE",
+          paymentStatus: paymentStatusMap[paymentMethod] as "PAID" | "DUE",
+          notes: cookingNote.trim() || undefined,
+        });
+
+        // Apply discount if set
+        const discountNum = parseFloat(discountAmount || "0");
+        if (isAdmin && discountAmount.trim() && !Number.isNaN(discountNum) && discountNum > 0) {
+          try {
+            await updateOrder.mutateAsync({
+              orderId: order.id,
+              data: { discountAmount: discountNum },
+            });
+          } catch {
+            toast.error("Order created, but failed to apply discount");
+          }
         }
+        
+        toast.success(
+          `KOT printed! ${orderMethod === "dine-in" ? `Table ${tables?.find((t) => t.id === selectedTableId)?.tableNumber || selectedTableId}` : ""} - ${manualCart.length} items`,
+        );
       }
+
+      const tableDisplayNum = tables?.find((t) => t.id === (selectedOrderForEdit?.tableId || selectedTableId))?.tableNumber || (selectedOrderForEdit?.tableId || selectedTableId);
+      const waiterDisplay = staff?.find((s) => s.id === (selectedOrderForEdit?.placedByStaff?.id || selectedWaiterId))?.fullName;
 
       // Print KOT to thermal printer
       if (restaurant) {
-        const kotData = buildKOTDataFromOrder({ order, restaurant });
+        const kotData = buildKOTDataFromOrder({
+          order,
+          restaurant,
+          tableNumber: (selectedOrderForEdit?.orderType || orderMethod) === "dine-in" || (selectedOrderForEdit?.orderType || orderMethod) === "DINE_IN" ? String(tableDisplayNum) : undefined,
+          waiterName: waiterDisplay
+        });
         await printKOT(kotData);
       }
-
-      const tableDisplayNum = tables?.find((t) => t.id === selectedTableId)?.tableNumber || selectedTableId;
-
-      toast.success(
-        `KOT printed! ${orderMethod === "dine-in" ? `Table ${tableDisplayNum}` : ""} - ${manualCart.length} items`,
-      );
 
       await refetch();
       setManualCart([]);
@@ -421,6 +610,7 @@ export default function LiveOrdersPage() {
       setWaiveServiceCharge(false);
       setIsNewOrderOpen(false);
       setShowMobilePOS(false);
+      setSelectedOrderForEdit(null);
       refetch();
     } catch (error) {
       // Error handled by mutation / printKOT toast
@@ -438,59 +628,73 @@ export default function LiveOrdersPage() {
     }
 
     try {
-      const orderTypeMap = {
-        "dine-in": "DINE_IN",
-        "takeaway": "TAKEAWAY",
-        "delivery": "DELIVERY",
-      };
+      if (selectedOrderForEdit) {
+        // Add items to existing order without printing KOT
+        await addOrderItems.mutateAsync({
+          orderId: selectedOrderForEdit.id,
+          items: manualCart.map((item) => ({
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            variantId: item.variantId,
+            modifierIds: item.modifierIds,
+          })),
+        });
+        toast.success(`Items sent to kitchen for Order #${selectedOrderForEdit.orderNumber || selectedOrderForEdit.id.slice(-4)}`);
+      } else {
+        const orderTypeMap = {
+          "dine-in": "DINE_IN",
+          "takeaway": "TAKEAWAY",
+          "delivery": "DELIVERY",
+        };
 
-      const paymentStatusMap = {
-        "cash": "PAID",
-        "card": "PAID",
-        "upi": "PAID",
-        "due": "DUE",
-      };
+        const paymentStatusMap = {
+          "cash": "PAID",
+          "card": "PAID",
+          "upi": "PAID",
+          "due": "DUE",
+        };
 
-      const order = await createOrder.mutateAsync({
-        tableId: orderMethod === "dine-in" ? selectedTableId : undefined,
-        orderType: orderTypeMap[orderMethod] as "DINE_IN" | "TAKEAWAY" | "DELIVERY",
-        waiveServiceCharge: orderMethod === "dine-in" ? waiveServiceCharge : false,
-        items: manualCart.map((item) => ({
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-          variantId: item.variantId,
-          modifierIds: item.modifierIds,
-        })),
-        assignedWaiterId: selectedWaiterId || undefined,
-        paymentMethod: paymentMethod.toUpperCase() as "CASH" | "CARD" | "UPI" | "DUE",
-        paymentStatus: paymentStatusMap[paymentMethod] as "PAID" | "DUE",
-        notes: cookingNote.trim() || undefined,
-      });
+        const order = await createOrder.mutateAsync({
+          tableId: orderMethod === "dine-in" ? selectedTableId : undefined,
+          orderType: orderTypeMap[orderMethod] as "DINE_IN" | "TAKEAWAY" | "DELIVERY",
+          waiveServiceCharge: orderMethod === "dine-in" ? waiveServiceCharge : false,
+          items: manualCart.map((item) => ({
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            variantId: item.variantId,
+            modifierIds: item.modifierIds,
+          })),
+          assignedWaiterId: selectedWaiterId || undefined,
+          paymentMethod: paymentMethod.toUpperCase() as "CASH" | "CARD" | "UPI" | "DUE",
+          paymentStatus: paymentStatusMap[paymentMethod] as "PAID" | "DUE",
+          notes: cookingNote.trim() || undefined,
+        });
 
-      // Apply discount (admin only) after order creation
-      const discountNum = parseFloat(discountAmount || "0");
-      if (isAdmin && discountAmount.trim() && !Number.isNaN(discountNum) && discountNum > 0) {
-        try {
-          const updated = await updateOrder.mutateAsync({
-            orderId: order.id,
-            data: { discountAmount: discountNum },
-          });
-          // Ensure any open bill/details will show updated discountAmount
-          setSelectedOrder(updated);
-        } catch {
-          // If discount update fails, keep the order but warn
-          toast.error("Order created, but failed to apply discount");
+        // Apply discount (admin only) after order creation
+        const discountNum = parseFloat(discountAmount || "0");
+        if (isAdmin && discountAmount.trim() && !Number.isNaN(discountNum) && discountNum > 0) {
+          try {
+            const updated = await updateOrder.mutateAsync({
+              orderId: order.id,
+              data: { discountAmount: discountNum },
+            });
+            // Ensure any open bill/details will show updated discountAmount
+            setSelectedOrder(updated);
+          } catch {
+            // If discount update fails, keep the order but warn
+            toast.error("Order created, but failed to apply discount");
+          }
         }
+
+        const tableDisplayNum = tables?.find((t) => t.id === selectedTableId)?.tableNumber || selectedTableId;
+
+        toast.success(
+          `Order ${paymentMethod !== 'due' ? 'placed and paid' : 'sent to kitchen'}! ${orderMethod === 'dine-in' ? `Table ${tableDisplayNum}` : ''} - ${manualCart.length} items`,
+        );
+
+        // Refresh list so bill details reflects latest discount
+        await refetch();
       }
-
-      const tableDisplayNum = tables?.find((t) => t.id === selectedTableId)?.tableNumber || selectedTableId;
-
-      toast.success(
-        `Order ${paymentMethod !== 'due' ? 'placed and paid' : 'sent to kitchen'}! ${orderMethod === 'dine-in' ? `Table ${tableDisplayNum}` : ''} - ${manualCart.length} items`,
-      );
-
-      // Refresh list so bill details reflects latest discount
-      await refetch();
 
       setManualCart([]);
       setSelectedTableId("");
@@ -501,6 +705,7 @@ export default function LiveOrdersPage() {
       setWaiveServiceCharge(false);
       setIsNewOrderOpen(false);
       setShowMobilePOS(false);
+      setSelectedOrderForEdit(null);
       refetch();
     } catch (error) {
       // Error handled by mutation
@@ -685,6 +890,7 @@ export default function LiveOrdersPage() {
 
   const handleCloseMobilePOS = () => {
     setShowMobilePOS(false);
+    setSelectedOrderForEdit(null);
     setManualCart([]);
     setSelectedWaiterId(null);
     setSelectedTableId("");
@@ -696,6 +902,16 @@ export default function LiveOrdersPage() {
   };
 
   const handleNewOrderClick = () => {
+    setSelectedOrderForEdit(null);
+    setManualCart([]);
+    setSelectedWaiterId(null);
+    setSelectedTableId("");
+    setCookingNote("");
+    setDiscountAmount("");
+    setSearchQuery("");
+    setIsSearchOpen(false);
+    setActiveCategory(menuData?.categories?.[0]?.id || "");
+    
     if (isMobile) {
       setShowMobilePOS(true);
     } else {
@@ -830,6 +1046,15 @@ export default function LiveOrdersPage() {
           </div>
         ) : (
           <MobilePOS
+            title={
+              selectedOrderForEdit
+                ? (selectedOrderForEdit.table?.tableNumber
+                    ? `Add Items — T${selectedOrderForEdit.table.tableNumber}`
+                    : `Add Items — Order #${selectedOrderForEdit.orderNumber ? String(selectedOrderForEdit.orderNumber).padStart(4, "0") : selectedOrderForEdit.id.slice(-4)}`)
+                : "New Order"
+            }
+            hideTableSelect={!!selectedOrderForEdit}
+            hideOrderTypeSelect={!!selectedOrderForEdit}
             serviceRatePct={serviceRatePct}
             waiveServiceCharge={waiveServiceCharge}
             onToggleWaiveServiceCharge={setWaiveServiceCharge}
@@ -889,17 +1114,18 @@ export default function LiveOrdersPage() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => refetch()}
+            onClick={handleRefresh}
+            disabled={isRefetching || isRefreshing}
             className="shrink-0"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={cn("w-4 h-4", (isRefetching || isRefreshing) && "animate-spin")} />
           </Button>
 
           <Link href="/dashboard/orders/cancelled">
             <Button variant="outline" className="shrink-0">
-              <XCircle className="w-1 h-1 mr-2 text-red-600" />
+              <XCircle className="w-2 h-2 text-red-600" />
               <span className="hidden sm:inline">Cancelled</span>
-              <span className="sm:hidden">Cancelled</span>
+              {/* <span className="sm:hidden">Cancelled</span> */}
               {/* <ExternalLink className="w-4 h-4 ml-2" />  */}
             </Button>
           </Link>
@@ -913,11 +1139,15 @@ export default function LiveOrdersPage() {
             </Button>
           ) : (
             <Dialog
-              open={isNewOrderOpen}
+              open={isNewOrderOpen || !!selectedOrderForEdit}
               onOpenChange={(open) => {
-                if (!open && customizingItem) return;
-                setIsNewOrderOpen(open);
-                if (!open) {
+                if (open) {
+                  setIsNewOrderOpen(true);
+                } else {
+                  if (customizingItem) return;
+                  // Close logic handles both Add Items vs New Order modes
+                  setIsNewOrderOpen(false);
+                  setSelectedOrderForEdit(null);
                   setSelectedWaiterId(null);
                   setSelectedTableId("1");
                   setManualCart([]);
@@ -937,6 +1167,15 @@ export default function LiveOrdersPage() {
                 </Button>
               </DialogTrigger>
               <DesktopPOS
+                title={
+                  selectedOrderForEdit
+                    ? (selectedOrderForEdit.table?.tableNumber
+                        ? `Add Items — T${selectedOrderForEdit.table.tableNumber}`
+                        : `Add Items — Order #${selectedOrderForEdit.orderNumber ? String(selectedOrderForEdit.orderNumber).padStart(4, "0") : selectedOrderForEdit.id.slice(-4)}`)
+                    : "New Order"
+                }
+                hideTableSelect={!!selectedOrderForEdit}
+                hideOrderTypeSelect={!!selectedOrderForEdit}
                 serviceRatePct={serviceRatePct}
                 waiveServiceCharge={waiveServiceCharge}
                 onToggleWaiveServiceCharge={setWaiveServiceCharge}
@@ -1013,8 +1252,36 @@ export default function LiveOrdersPage() {
               {activeOrders.map((order: Order) => (
                 <Card
                   key={order.id}
-                  className="overflow-hidden border-l-4 border-l-primary shadow-md hover:shadow-lg transition-shadow"
+                  className="relative overflow-hidden border-l-4 border-l-primary shadow-md hover:shadow-lg transition-shadow"
                 >
+                  {/* Add Items Button - top-right of card */}
+                  {(order.status === "PENDING" || order.status === "PREPARING" || order.status === "READY" || order.status === "SERVED") && order.status !== "CANCELLED" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors z-10 border border-primary/20 shadow-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Put the POS in edit mode
+                        setSelectedOrderForEdit(order);
+                        setManualCart([]);
+                        setCookingNote("");
+                        setSelectedWaiterId(order.placedByStaff?.id || null);
+                        setActiveCategory(menuData?.categories?.[0]?.id || "");
+                        setOrderMethod(order.orderType === "TAKEAWAY" ? "takeaway" : order.orderType === "DELIVERY" ? "delivery" : "dine-in");
+                        setSelectedTableId(order.table?.id || order.tableId || "");
+
+                        if (isMobile) {
+                          setShowMobilePOS(true);
+                        } else {
+                          setIsNewOrderOpen(true);
+                        }
+                      }}
+                      title="Add items to this order"
+                    >
+                      <Plus className="w-5 h-5" />
+                    </Button>
+                  )}
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col gap-4">
                       {/* Header Section */}
@@ -1023,8 +1290,8 @@ export default function LiveOrdersPage() {
                           <span className="text-lg sm:text-xl font-bold font-heading">
                             {order.table?.tableNumber
                               ? `Table ${order.table.tableNumber}`
-                              : order.guestName ||
-                              `Order #${order.id.slice(-6)}`}
+                              : `Order #${order.orderNumber ? String(order.orderNumber).padStart(4, "0") : order.id.slice(-4)}`
+                            }
                           </span>
                           <Badge
                             variant={getStatusColor(order.status)}
@@ -1110,10 +1377,7 @@ export default function LiveOrdersPage() {
                               size="sm"
                               variant="outline"
                               onClick={() =>
-                                updateStatus.mutate({
-                                  orderId: order.id,
-                                  status: "PREPARING",
-                                })
+                                handleUpdateStatus(order.id, "PREPARING")
                               }
                               disabled={updateStatus.isPending}
                               className="flex-1 sm:flex-initial"
@@ -1127,10 +1391,7 @@ export default function LiveOrdersPage() {
                               size="sm"
                               variant="outline"
                               onClick={() =>
-                                updateStatus.mutate({
-                                  orderId: order.id,
-                                  status: "READY",
-                                })
+                                handleUpdateStatus(order.id, "READY")
                               }
                               disabled={updateStatus.isPending}
                               className="flex-1 sm:flex-initial"
@@ -1144,10 +1405,7 @@ export default function LiveOrdersPage() {
                               size="sm"
                               variant="default"
                               onClick={() =>
-                                updateStatus.mutate({
-                                  orderId: order.id,
-                                  status: "SERVED",
-                                })
+                                handleUpdateStatus(order.id, "SERVED")
                               }
                               disabled={updateStatus.isPending}
                               className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-initial"
@@ -1260,8 +1518,8 @@ export default function LiveOrdersPage() {
                   {selectedOrder && (
                     <span className="block mt-1 font-semibold text-sm">
                       {selectedOrder.table?.tableNumber
-                        ? `Table ${selectedOrder.table.tableNumber}`
-                        : selectedOrder.guestName || `Order #${selectedOrder.id.slice(-6)}`}
+                        ? `Table ${selectedOrder.table.tableNumber} (${selectedOrder.guestName || "Guest"})`
+                        : selectedOrder.guestName || `Order #${selectedOrder.orderNumber ? String(selectedOrder.orderNumber).padStart(4, "0") : selectedOrder.id.slice(-4)}`}
                     </span>
                   )}
                 </DialogDescription>
@@ -1572,63 +1830,62 @@ export default function LiveOrdersPage() {
                   </div>
 
                   {/* Payment Buttons - Show if not fully paid */}
-                  {selectedOrder.paymentStatus !== "PAID" && (
-                    <>
-                      <Separator />
+                  <div className="sticky bottom-[-16px] sm:bottom-[-24px] bg-background pt-2 pb-4 sm:pb-6 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t mt-4 z-10 flex flex-col gap-3">
+                    {selectedOrder.paymentStatus !== "PAID" && (
                       <div>
                         <h4 className="font-semibold text-xs uppercase tracking-wide text-muted-foreground mb-3">
                           {selectedOrder.paymentStatus === "PARTIALLY_PAID"
                             ? "Pay Outstanding Amount"
                             : "Accept Payment"}
                         </h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                           <Button
                             onClick={() => handlePayment(selectedOrder, "CASH")}
                             variant="outline"
-                            className="flex flex-col items-center gap-1 h-auto py-3"
+                            className="flex flex-col items-center justify-center gap-1 h-14 sm:h-auto sm:py-3"
                             disabled={updatePaymentStatus.isPending}
                           >
-                            <DollarSign className="w-4 h-4" />
-                            <span className="text-[11px]">Cash</span>
+                            <DollarSign className="w-4 h-4 mb-0.5" />
+                            <span className="text-[10px] sm:text-[11px] leading-tight flex-1">Cash</span>
                           </Button>
                           <Button
                             onClick={() => handlePayment(selectedOrder, "CARD")}
                             variant="outline"
-                            className="flex flex-col items-center gap-1 h-auto py-3"
+                            className="flex flex-col items-center justify-center gap-1 h-14 sm:h-auto sm:py-3"
                             disabled={updatePaymentStatus.isPending}
                           >
-                            <CreditCard className="w-4 h-4" />
-                            <span className="text-[11px]">Card</span>
+                            <CreditCard className="w-4 h-4 mb-0.5" />
+                            <span className="text-[10px] sm:text-[11px] leading-tight flex-1">Card</span>
                           </Button>
                           <Button
                             onClick={() => handlePayment(selectedOrder, "UPI")}
                             variant="outline"
-                            className="flex flex-col items-center gap-1 h-auto py-3"
+                            className="flex flex-col items-center justify-center gap-1 h-14 sm:h-auto sm:py-3"
                             disabled={updatePaymentStatus.isPending}
                           >
-                            <QrCode className="w-4 h-4" />
-                            <span className="text-[11px]">UPI</span>
+                            <QrCode className="w-4 h-4 mb-0.5" />
+                            <span className="text-[10px] sm:text-[11px] leading-tight flex-1">UPI</span>
                           </Button>
                         </div>
                       </div>
-                    </>
-                  )}
-
-                  {/* Print Button (always shown) */}
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleThermalPrint}
-                    disabled={isPrinting || !isPrinterConnected}
-                    title={!isPrinterConnected ? "Pair/connect printer from the sidebar first" : undefined}
-                  >
-                    {isPrinting ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Printer className="w-4 h-4 mr-2" />
                     )}
-                    Print Bill
-                  </Button>
+
+                    {/* Print Button (always shown) */}
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 sm:h-10 border-foreground/20 font-semibold"
+                      onClick={handleThermalPrint}
+                      disabled={isPrinting || !isPrinterConnected}
+                      title={!isPrinterConnected ? "Pair/connect printer from the sidebar first" : undefined}
+                    >
+                      {isPrinting ? (
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      ) : (
+                        <Printer className="w-5 h-5 mr-2" />
+                      )}
+                      Print Bill
+                    </Button>
+                  </div>
                 </div>
               )}
             </DialogContent>

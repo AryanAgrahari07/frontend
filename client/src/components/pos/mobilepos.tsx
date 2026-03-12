@@ -30,6 +30,8 @@ import {
   Loader2,
   StickyNote,
   Percent,
+  Search,
+  X,
   MinusCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -152,12 +154,27 @@ export function MobilePOS({
   };
 
   const [activeView, setActiveView] = useState<"items" | "order">("items");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [vegFilter, setVegFilter] = useState<"all" | "veg" | "non-veg">("all");
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [discountMode, setDiscountMode] = useState<"amount" | "percent">("amount");
   const [discountPercent, setDiscountPercent] = useState("");
 
-  const filteredItems = menuItems.filter((item: any) => item.categoryId === activeCategory && item.isAvailable);
+  const filteredItems = menuItems.filter((item: any) => {
+    const isVeg = item.dietaryTags?.some((tag: string) => tag.toLowerCase() === "veg");
+    const isVegMatch = vegFilter === "all" ? true : vegFilter === "veg" ? isVeg : !isVeg;
+    if (!isVegMatch) return false;
+
+    if (!searchQuery && activeCategory) {
+      return item.categoryId === activeCategory && item.isAvailable;
+    } else if (searchQuery) {
+      const translatedName = getTranslatedName(item as any, language);
+      return item.isAvailable && translatedName.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    return false;
+  });
   const totalItems = cartItems.reduce((sum, li) => sum + li.quantity, 0);
 
   // Calculate totals
@@ -230,21 +247,89 @@ export function MobilePOS({
       <div className="flex-1 overflow-hidden min-h-0">
         {activeView === "items" ? (
           <div className="h-full flex flex-col">
-            {/* Category Bar */}
-            <div className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-                {categories.map((category: any) => (
-                  <button
-                    key={category.id}
-                    onClick={() => onCategoryChange(category.id)}
-                    className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all font-medium text-sm ${activeCategory === category.id
-                      ? "bg-primary text-white shadow-md"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
+            {/* Search, Filters, Category */}
+            <div className="bg-white border-b border-gray-200 px-3 py-2 flex-shrink-0">
+              <div className="flex items-center gap-2">
+
+                {/* Categories */}
+                {!isSearchOpen && (
+                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1">
+                    {categories.map((category: any) => (
+                      <button
+                        key={category.id}
+                        onClick={() => onCategoryChange(category.id)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg whitespace-nowrap transition-all font-medium text-xs",
+                          activeCategory === category.id
+                            ? "bg-primary text-white shadow-md"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        )}
+                      >
+                        {getTranslatedName(category as any, language, 'category')}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Search Expand */}
+                {isSearchOpen && (
+                  <div className="flex items-center gap-2 flex-1 max-w-full">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                      <Input
+                        type="text"
+                        placeholder="Search items..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-8 pl-7 pr-2 text-xs"
+                        autoFocus
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setIsSearchOpen(false);
+                        setSearchQuery("");
+                      }}
+                      className="flex-shrink-0 h-8 w-8 p-0"
+                    >
+                      <X className="w-4 h-4 text-gray-600" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Search Toggle Icon */}
+                {!isSearchOpen && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsSearchOpen(true)}
+                    className="flex-shrink-0 h-8 w-8 p-0"
                   >
-                    {getTranslatedName(category as any, language, 'category')}
-                  </button>
-                ))}
+                    <Search className="w-4 h-4 text-gray-600" />
+                  </Button>
+                )}
+
+                {/* Veg/Non-Veg Toggle */}
+                <button
+                  onClick={() => {
+                    if (vegFilter === "all") setVegFilter("veg");
+                    else if (vegFilter === "veg") setVegFilter("non-veg");
+                    else setVegFilter("all");
+                  }}
+                  className={cn(
+                    "flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-md border transition-colors bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary/50",
+                    vegFilter === "all" ? "border-gray-200 text-gray-700" :
+                      vegFilter === "veg" ? "border-green-600 bg-green-50" :
+                        "border-red-600 bg-red-50"
+                  )}
+                  title={`Filter: ${vegFilter === "all" ? "All" : vegFilter === "veg" ? "Veg" : "Non-Veg"} (Click to change)`}
+                >
+                  {vegFilter === "all" && <span className="text-[10px] sm:text-xs font-semibold leading-none">All</span>}
+                  {vegFilter === "veg" && <div className="size-2.5 sm:size-3 rounded-sm border border-green-600 bg-white relative after:content-[''] after:absolute after:inset-[1.5px] after:bg-green-600 after:rounded-full" />}
+                  {vegFilter === "non-veg" && <div className="size-2.5 sm:size-3 rounded-sm border border-red-600 bg-white relative after:content-[''] after:absolute after:inset-[1.5px] after:bg-red-600 after:rounded-full" />}
+                </button>
               </div>
             </div>
 
@@ -282,20 +367,20 @@ export function MobilePOS({
                             title={isVeg ? "Vegetarian" : "Non-Vegetarian"}
                           />
                         </div>
-                        <div className="flex items-center justify-between mt-auto">
-                          <span className="text-sm font-semibold text-gray-900">
+                        <div className="flex flex-wrap min-[370px]:flex-nowrap items-center justify-between mt-auto gap-1">
+                          <span className="text-xs min-[370px]:text-sm font-semibold text-gray-900">
                             {currency}{item.price}
                           </span>
                           {!isAdded ? (
                             <Button
                               onClick={() => onAddItem(item)}
                               size="sm"
-                              className="bg-primary hover:bg-primary/90 text-white h-7 w-7 p-0"
+                              className="bg-primary hover:bg-primary/90 text-white h-6 w-6 min-[370px]:h-7 min-[370px]:w-7 p-0 flex-shrink-0"
                             >
-                              <Plus className="size-3.5" />
+                              <Plus className="size-3 min-[376px]:size-3.5" />
                             </Button>
                           ) : (
-                            <div className="flex items-center gap-1 bg-gray-100 rounded-md p-0.5">
+                            <div className="flex items-center bg-gray-100 rounded-md flex-shrink-0 min-[370px]:gap-1 min-[370px]:p-0.5">
                               <Button
                                 onClick={() => {
                                   // for non-customizable items, decrement the single line; for customizable, user should use cart view.
@@ -304,11 +389,11 @@ export function MobilePOS({
                                 }}
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 w-6 p-0 hover:bg-gray-200"
+                                className="h-5 w-5 min-[370px]:h-6 min-[370px]:w-6 p-0 hover:bg-gray-200"
                               >
-                                <Minus className="size-3" />
+                                <Minus className="size-2.5 min-[370px]:size-3" />
                               </Button>
-                              <span className="font-semibold text-gray-900 min-w-[1rem] text-center text-xs px-0.5">
+                              <span className="font-semibold text-gray-900 min-w-[1.1rem] min-[370px]:min-w-[1rem] text-center text-[11px] min-[370px]:text-xs px-0.5">
                                 {quantity}
                               </span>
                               <Button
@@ -323,9 +408,9 @@ export function MobilePOS({
                                 }}
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 w-6 p-0 hover:bg-gray-200"
+                                className="h-5 w-5 min-[370px]:h-6 min-[370px]:w-6 p-0 hover:bg-gray-200"
                               >
-                                <Plus className="size-3" />
+                                <Plus className="size-2.5 min-[370px]:size-3" />
                               </Button>
                             </div>
                           )}

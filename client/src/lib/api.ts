@@ -11,6 +11,15 @@ import { secureStorage } from "@/lib/secureStorage";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
+// On web/PWA the Vite dev-server proxy (and Nginx in prod) serve /api at the
+// same origin as the page, so HttpOnly cookies are sent automatically.
+// On native Capacitor the page origin is capacitor://localhost so we MUST use
+// the absolute backend URL. Using a relative URL on native would 404.
+const isNativePlatform = () => {
+  try { return typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform(); }
+  catch { return false; }
+};
+
 const TOKEN_KEY = "orderji_token";
 const REFRESH_TOKEN_KEY = "orderji_refresh_token";
 
@@ -37,8 +46,13 @@ export async function migrateLegacyTokenIfNeeded(): Promise<void> {
 }
 
 function buildUrl(path: string): string {
+  if (path.startsWith("http")) return path;
   const p = path.startsWith("/") ? path : `/${path}`;
-  return path.startsWith("http") ? path : `${API_BASE}${p}`;
+  // Web: use relative URL → goes through the Vite proxy (same origin as the
+  // page), which means HttpOnly cookies are included automatically.
+  // Native: must use absolute URL because there is no proxy.
+  if (!isNativePlatform()) return p;
+  return `${API_BASE}${p}`;
 }
 
 async function getHeaders(jsonBody?: boolean): Promise<HeadersInit> {

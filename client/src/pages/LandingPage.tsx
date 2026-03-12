@@ -209,7 +209,7 @@ export default function LandingPage() {
             </div>
             <div className="w-full lg:w-1/2">
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground font-bold leading-relaxed max-w-xl">
-                Legacy systems are slowing you down. OrderJi is built for the high-velocity world of modern dining.
+                Legacy systems are slowing you down. Order<span className="text-primary">zi</span> is built for the high-velocity world of modern dining.
               </p>
             </div>
           </div>

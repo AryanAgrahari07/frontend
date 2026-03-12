@@ -123,6 +123,7 @@ export interface KOTData {
   };
   kot: {
     kotNumber: string;   // short ID (last 6 chars of order id or temp id)
+    orderNumber?: string;
     date: string;
     time: string;
     tableNumber?: string;
@@ -944,8 +945,11 @@ export class BluetoothPrinter {
 
       // ── Order info ──────────────────────────────────────────────────────
       await this.sendText(`KOT No : ${kotData.kot.kotNumber}\n`);
+      if (kotData.kot.orderNumber) {
+        await this.sendText(`Order No: ${kotData.kot.orderNumber}\n`);
+      }
       await this.sendText(`Date   : ${kotData.kot.date} ${kotData.kot.time}\n`);
-      await this.sendText(`Type   : ${kotData.kot.orderType}${kotData.kot.tableNumber ? ` - Table ${kotData.kot.tableNumber}` : ''}\n`);
+      await this.sendText(`Type   : ${kotData.kot.orderType}\n`);
       if (kotData.kot.waiterName) {
         await this.sendText(`Waiter : ${kotData.kot.waiterName}\n`);
       }

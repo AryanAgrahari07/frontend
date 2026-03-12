@@ -42,7 +42,7 @@ export default function ContactSection() {
             </h2>
 
             <p className="hidden sm:block text-lg sm:text-xl font-bold opacity-70 max-w-md leading-relaxed">
-              Whether you need a custom enterprise solution or just want to learn how OrderJi can transform your venue, our experts are ready.
+              Whether you need a custom enterprise solution or just want to learn how Order<span className="text-primary">zi</span> can transform your venue, our experts are ready.
             </p>
             <p className="sm:hidden text-sm font-bold opacity-70 leading-relaxed">
               Ready to transform your venue? Contact our team.
@@ -59,7 +59,7 @@ export default function ContactSection() {
                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black text-white flex items-center justify-center">
                   <Globe className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <p className="font-black uppercase tracking-widest text-sm sm:text-base pr-4">hello@orderji.in</p>
+                <p className="font-black uppercase tracking-widest text-sm sm:text-base pr-4">hello@orderzi.in</p>
               </div>
             </div>
           </div>

@@ -24,7 +24,7 @@ export default function StaffSubscriptionExpiredPage() {
                 </h1>
 
                 <p className="text-gray-500 text-sm leading-relaxed">
-                    The OrderJi subscription for this restaurant has expired.
+                    The Order<span className="text-primary">zi</span> subscription for this restaurant has expired.
                     Your staff terminal access requires an active plan to connect to the database.
                 </p>
 

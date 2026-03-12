@@ -54,7 +54,7 @@ export function buildBillDataFromOrder(opts: {
       tableNumber: order.table?.tableNumber,
       guestName: order.guestName,
       waiterName: order.placedByStaff?.fullName,
-      cashier: order.placedByStaff?.fullName || "System",
+      cashier: order.placedByStaff?.fullName,
       dineIn: order.orderType === "DINE_IN" ? "Dine In" : order.orderType === "TAKEAWAY" ? "Takeaway" : "Delivery",
     },
     items:

@@ -71,9 +71,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="h-16 flex items-center px-6 border-b border-border">
           <Link href="/dashboard">
             <div className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity">
-              <img src="/logo.png" alt="OrderJi" className="w-8 h-8 object-contain drop-shadow-sm" />
+              <img src="/logo.png" alt="Orderzi" className="w-8 h-8 object-contain drop-shadow-sm" />
               <div className="text-2xl font-heading font-black tracking-tight">
-                <span className="text-foreground dark:text-white">Order</span><span className="text-primary">Ji</span>
+                <span className="text-foreground dark:text-white">Order</span><span className="text-primary">zi</span>
               </div>
             </div>
           </Link>
@@ -180,9 +180,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="h-16 flex items-center justify-between px-6 border-b border-border">
           <Link href="/dashboard">
             <div className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity" onClick={handleNavClick}>
-              <img src="/logo.png" alt="OrderJi" className="w-8 h-8 object-contain drop-shadow-sm" />
+              <img src="/logo.png" alt="Orderzi" className="w-8 h-8 object-contain drop-shadow-sm" />
               <div className="hidden sm:block text-2xl font-heading font-black tracking-tight">
-                <span className="text-foreground dark:text-white">Order</span><span className="text-primary">Ji</span>
+                <span className="text-foreground dark:text-white">Order</span><span className="text-primary">zi</span>
               </div>
             </div>
           </Link>

@@ -63,10 +63,12 @@ export default function WaiterTerminalPage() {
   const [_, setLocation] = useLocation();
   const { restaurantId, user, logout } = useAuth();
   const { data: restaurant } = useRestaurant(restaurantId);
-  const { data: tables, isLoading: tablesLoading, refetch: refetchTables } = useTables(restaurantId);
-  const { data: queueEntries, isLoading: queueLoading, refetch: refetchQueue } = useQueueActive(restaurantId);
-  const { data: menuData, refetch: refetchMenu } = useMenuCategories(restaurantId, restaurant?.slug ?? null);
-  const { data: ordersData, refetch: refetchOrders } = useOrders(restaurantId, { limit: 50 });
+  const { data: tables, isLoading: tablesLoading, refetch: refetchTables, isRefetching: isRefetchingTables } = useTables(restaurantId);
+  const { data: queueEntries, isLoading: queueLoading, refetch: refetchQueue, isRefetching: isRefetchingQueue } = useQueueActive(restaurantId);
+  const { data: menuData, refetch: refetchMenu, isRefetching: isRefetchingMenu } = useMenuCategories(restaurantId, restaurant?.slug ?? null);
+  const { data: ordersData, refetch: refetchOrders, isRefetching: isRefetchingOrders } = useOrders(restaurantId, { limit: 50 });
+
+  const isRefetching = isRefetchingTables || isRefetchingQueue || isRefetchingMenu || isRefetchingOrders;
 
   // `useOrders` returns `{ orders, pagination }` in most places, but some older code treated it as `Order[]`.
   // Normalize to a plain array to avoid runtime crashes like `(orders || []).filter is not a function`.
@@ -156,17 +158,14 @@ export default function WaiterTerminalPage() {
     readyOrders.forEach((order: Order) => {
       if (!servedOrdersRef.current.has(order.id)) {
         servedOrdersRef.current.add(order.id);
-        const tableName = order.table?.tableNumber ? `Table ${order.table.tableNumber}` : order.guestName || `Order #${order.id.slice(-4)}`;
+        const orderNum = order.orderNumber ? String(order.orderNumber).padStart(4, "0") : order.id.slice(-4);
+        const tableName = order.table?.tableNumber ? `Table ${order.table.tableNumber}` : order.guestName || `Order #${orderNum}`;
         const notification = {
           id: order.id,
           message: `🍽️ ${tableName} is READY for pickup!`,
           time: new Date(),
         };
         setNotifications((prev) => [notification, ...prev].slice(0, 10));
-        toast.success(notification.message, {
-          duration: 10000,
-          icon: <ChefHat className="w-5 h-5 text-green-500" />,
-        });
 
         // Play notification sound if available
         try {
@@ -199,7 +198,6 @@ export default function WaiterTerminalPage() {
         const msg = `🪑 New table assigned: Table ${table.tableNumber}`;
         const notification = { id: `table-${table.id}`, message: msg, time: new Date() };
         setNotifications((p) => [notification, ...p].slice(0, 10));
-        toast.success(msg, { duration: 9000, icon: <Bell className="w-5 h-5 text-primary" /> });
         try {
           const audio = new Audio("/notification.mp3");
           audio.play().catch(() => { });
@@ -226,13 +224,13 @@ export default function WaiterTerminalPage() {
       if (seenAssignedOrdersRef.current.has(order.id)) continue;
       seenAssignedOrdersRef.current.add(order.id);
 
-      const who = order.table?.tableNumber
+      const orderNum = order.orderNumber ? String(order.orderNumber).padStart(4, "0") : order.id.slice(-4);
+      const guestOrTableStr = order.table?.tableNumber
         ? `Table ${order.table.tableNumber}`
-        : order.guestName || `Order #${order.id.slice(-4)}`;
-      const msg = `🧾 New order assigned: ${who}`;
+        : order.guestName || `Order #${orderNum}`;
+      const msg = `🧾 New order assigned: ${guestOrTableStr}`;
       const notification = { id: `order-${order.id}`, message: msg, time: new Date() };
       setNotifications((p) => [notification, ...p].slice(0, 10));
-      toast.success(msg, { duration: 9000, icon: <Receipt className="w-5 h-5 text-primary" /> });
       try {
         const audio = new Audio("/notification.mp3");
         audio.play().catch(() => { });
@@ -245,12 +243,15 @@ export default function WaiterTerminalPage() {
     setLocation("/auth");
   };
 
-  const handleRefreshAll = () => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshAll = async () => {
+    setIsRefreshing(true);
     refetchTables();
     refetchQueue();
     refetchOrders();
     refetchMenu();
-    toast.success("Refreshed!");
+    setTimeout(() => setIsRefreshing(false), 1000);
   };
 
   const toggleTableStatus = async (table: Table) => {
@@ -521,7 +522,6 @@ export default function WaiterTerminalPage() {
       toast.error("Please add items to the order");
       return;
     }
-    toast.success("Order saved!");
   };
 
   const handleSaveAndPrint = () => {
@@ -529,7 +529,6 @@ export default function WaiterTerminalPage() {
       toast.error("Please add items to the order");
       return;
     }
-    toast.success("Order saved and sent to printer!");
   };
 
   const currency = restaurant?.currency || "₹";
@@ -766,8 +765,9 @@ export default function WaiterTerminalPage() {
               variant="outline"
               size="sm"
               onClick={handleRefreshAll}
+              disabled={isRefetching || isRefreshing}
             >
-              <RefreshCw className="w-4 h-4 mr-1" /> Refresh
+              <RefreshCw className={cn("w-4 h-4 mr-1", (isRefetching || isRefreshing) && "animate-spin")} /> Refresh
             </Button>
 
             <LanguageSelector className="bg-white" />
@@ -971,7 +971,7 @@ export default function WaiterTerminalPage() {
                       <div className="flex justify-between items-start">
                         <div>
                           <CardTitle className="text-lg">
-                            {order.table?.tableNumber ? `Table ${order.table.tableNumber}` : order.guestName || `#${order.id.slice(-4)}`}
+                            {order.table?.tableNumber ? `Table ${order.table.tableNumber}` : order.guestName || `#${order.orderNumber ? String(order.orderNumber).padStart(4, "0") : order.id.slice(-4)}`}
                           </CardTitle>
                           <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                             <Clock className="w-3 h-3" /> {getTimeSince(order.createdAt)}

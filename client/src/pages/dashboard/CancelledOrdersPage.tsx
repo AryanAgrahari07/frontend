@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import type { CancelledOrderSummary } from "@/hooks/api";
+import { cn } from "@/lib/utils";
 
 function safeDate(dateLike: string | Date | null | undefined): Date | null {
   if (!dateLike) return null;
@@ -27,7 +28,7 @@ export default function CancelledOrdersPage() {
   const [pageSize] = useState(20);
   const offset = (currentPage - 1) * pageSize;
 
-  const { data: ordersData, isLoading, refetch } = useCancelledOrdersSummary(restaurantId, {
+  const { data: ordersData, isLoading, refetch, isRefetching } = useCancelledOrdersSummary(restaurantId, {
     limit: pageSize,
     offset,
   });
@@ -41,6 +42,13 @@ export default function CancelledOrdersPage() {
   );
 
   const currency = restaurant?.currency || "₹";
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
 
   const orders = ordersData?.orders ?? [];
   const pagination = ordersData?.pagination;
@@ -75,8 +83,8 @@ export default function CancelledOrdersPage() {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefetching || isRefreshing}>
+            <RefreshCw className={cn("w-4 h-4 mr-2", (isRefetching || isRefreshing) && "animate-spin")} /> Refresh
           </Button>
         </div>
       </div>

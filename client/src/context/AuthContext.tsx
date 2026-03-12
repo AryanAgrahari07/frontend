@@ -150,9 +150,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     await setStoredToken(null);
     if (Capacitor.isNativePlatform()) await secureStorage.remove(REFRESH_TOKEN_KEY);
-    await preferences.remove({ key: RESTAURANT_ID_KEY });
+    // We intentionally DO NOT remove RESTAURANT_ID_KEY so terminal devices remain paired.
     await preferences.remove({ key: AUTH_CACHE_KEY });
-    setState({ user: null, token: null, restaurantId: null, isLoading: false, isReady: true });
+    setState((s) => ({ ...s, user: null, token: null, isLoading: false, isReady: true }));
   }, []);
 
   const onboardingComplete = useCallback((data: { user: User; token: string; refreshToken?: string; restaurant: { id: string } }) => {
@@ -183,9 +183,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (async () => {
         await setStoredToken(null);
         if (Capacitor.isNativePlatform()) await secureStorage.remove(REFRESH_TOKEN_KEY);
-        await preferences.remove({ key: RESTAURANT_ID_KEY });
         await preferences.remove({ key: AUTH_CACHE_KEY });
-        setState({ user: null, token: null, restaurantId: null, isLoading: false, isReady: true });
+        setState((s) => ({ ...s, user: null, token: null, isLoading: false, isReady: true }));
       })();
     };
 
@@ -261,9 +260,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const status = (err && typeof err === "object" && "status" in err) ? (err as any).status : undefined;
         if (status === 401 || status === 403) {
           await setStoredToken(null);
-          await preferences.remove({ key: RESTAURANT_ID_KEY });
           await preferences.remove({ key: AUTH_CACHE_KEY });
-          setState((s) => ({ ...s, user: null, token: null, restaurantId: null, isReady: true }));
+          setState((s) => ({ ...s, user: null, token: null, isReady: true }));
           return;
         }
 

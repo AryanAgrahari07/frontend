@@ -127,7 +127,7 @@ export function MenuItemCustomization({
   const [editingVariant, setEditingVariant] = useState<Variant | null>(null);
   const [variantForm, setVariantForm] = useState({
     variantName: "",
-    price: 0,
+    price: "" as string | number,
     isDefault: false,
   });
 
@@ -161,10 +161,10 @@ export function MenuItemCustomization({
       // Send total price directly to backend
       await createVariant.mutateAsync({
         variantName: variantForm.variantName,
-        price: variantForm.price,
+        price: Number(variantForm.price) || 0,
         isDefault: variantForm.isDefault,
       });
-      setVariantForm({ variantName: "", price: 0, isDefault: false });
+      setVariantForm({ variantName: "", price: "", isDefault: false });
       setIsAddingVariant(false);
       toast.success("Variant added successfully!");
       refreshLists();
@@ -181,12 +181,12 @@ export function MenuItemCustomization({
         variantId: editingVariant.id,
         data: {
           variantName: variantForm.variantName,
-          price: variantForm.price,
+          price: Number(variantForm.price) || 0,
           isDefault: variantForm.isDefault,
         },
       });
       setEditingVariant(null);
-      setVariantForm({ variantName: "", price: 0, isDefault: false });
+      setVariantForm({ variantName: "", price: "", isDefault: false });
       toast.success("Variant updated successfully!");
       refreshLists();
     } catch {
@@ -293,7 +293,7 @@ export function MenuItemCustomization({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl w-[calc(100vw-1rem)] md:w-full mx-2 sm:mx-auto h-[90vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="px-4 py-3 sm:px-6 sm:pt-6 sm:pb-4 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg pr-6 sm:pr-0">
               <Settings className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
@@ -384,7 +384,7 @@ export function MenuItemCustomization({
                                 setEditingVariant(variant);
                                 setVariantForm({
                                   variantName: variant.variantName,
-                                  price: variant.price,
+                                  price: variant.price === 0 ? "" : variant.price,
                                   isDefault: variant.isDefault,
                                 });
                               }}
@@ -595,10 +595,10 @@ export function MenuItemCustomization({
         if (!open) {
           setIsAddingVariant(false);
           setEditingVariant(null);
-          setVariantForm({ variantName: "", price: 0, isDefault: false });
+          setVariantForm({ variantName: "", price: "", isDefault: false });
         }
       }}>
-        <DialogContent className="w-[calc(100vw-1rem)] max-w-md mx-2 sm:mx-auto max-h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="px-4 py-3 sm:px-6 sm:pt-6 sm:pb-4 border-b shrink-0">
             <DialogTitle className="text-base sm:text-lg pr-6 sm:pr-0">
               {editingVariant ? "Edit Variant" : "Add New Variant"}
@@ -622,14 +622,21 @@ export function MenuItemCustomization({
                 <Input
                   type="number"
                   step="0.01"
-                  placeholder="0.00"
+                  min="0"
+                  placeholder="Enter price"
                   value={variantForm.price}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const val = e.target.value;
                     setVariantForm({
                       ...variantForm,
-                      price: parseFloat(e.target.value) || 0,
-                    })
-                  }
+                      price: val === "" ? "" : parseFloat(val),
+                    });
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === "") {
+                      setVariantForm({ ...variantForm, price: "" });
+                    }
+                  }}
                 />
                 <p className="text-xs text-muted-foreground">
                   Enter the complete price for this variant (not the price difference)
@@ -638,9 +645,15 @@ export function MenuItemCustomization({
               <div className="flex items-center space-x-2">
                 <Switch
                   checked={variantForm.isDefault}
-                  onCheckedChange={(checked) =>
-                    setVariantForm({ ...variantForm, isDefault: checked })
-                  }
+                  onCheckedChange={(checked) => {
+                    setVariantForm({ ...variantForm, isDefault: checked });
+                    // Enforce single default: when turning on, visually show only this one as default
+                    if (checked) {
+                      setVariants(prev => prev.map(v =>
+                        v.id === editingVariant?.id ? v : { ...v, isDefault: false }
+                      ));
+                    }
+                  }}
                 />
                 <Label>Set as default variant</Label>
               </div>
@@ -673,7 +686,7 @@ export function MenuItemCustomization({
           });
         }
       }}>
-        <DialogContent className="w-[calc(100vw-1rem)] max-w-md mx-2 sm:mx-auto max-h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="px-4 py-3 sm:px-6 sm:pt-6 sm:pb-4 border-b shrink-0">
             <DialogTitle className="text-base sm:text-lg pr-6 sm:pr-0">Create New Modifier Group</DialogTitle>
           </DialogHeader>

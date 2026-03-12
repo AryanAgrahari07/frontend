@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { UserPlus, Users, UserCircle, ChefHat, Trash2, Loader2, RefreshCw, ShieldCheck, Eye, Mail, Phone, Calendar, Shield, Copy } from "lucide-react";
+import { UserPlus, Users, UserCircle, ChefHat, Trash2, Loader2, RefreshCw, ShieldCheck, Eye, Mail, Phone, Calendar, Shield, Copy, KeyRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -51,9 +51,13 @@ function useCreateStaff(restaurantId: string | null) {
       const res = await api.post<{ staff: StaffRow }>(`/api/restaurants/${restaurantId}/staff`, backendData);
       return res.staff;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["staff", restaurantId] });
-      toast.success("Staff member created successfully!");
+      if (data.staffCode) {
+        toast.success(`Staff created! Login ID: ${data.staffCode}`);
+      } else {
+        toast.success("Staff member created successfully!");
+      }
     },
     onError: (e: Error) => toast.error(e.message || "Failed to create staff member"),
   });
@@ -73,11 +77,24 @@ function useDeleteStaff(restaurantId: string | null) {
   });
 }
 
+function useResetPasscode(restaurantId: string | null) {
+  return useMutation({
+    mutationFn: async ({ staffId, passcode }: { staffId: string; passcode: string }) => {
+      await api.put(`/api/restaurants/${restaurantId}/staff/${staffId}`, { passcode });
+    },
+    onSuccess: () => {
+      toast.success("Staff passcode reset successfully");
+    },
+    onError: (e: Error) => toast.error(e.message || "Failed to reset passcode"),
+  });
+}
+
 export default function StaffManagementPage() {
   const { restaurantId } = useAuth();
-  const { data: staff, isLoading, refetch } = useStaff(restaurantId);
+  const { data: staff, isLoading, refetch, isRefetching } = useStaff(restaurantId);
   const createStaff = useCreateStaff(restaurantId);
   const deleteStaff = useDeleteStaff(restaurantId);
+  const resetPasscode = useResetPasscode(restaurantId);
 
   const [formData, setFormData] = useState({
     displayName: "",
@@ -90,9 +107,22 @@ export default function StaffManagementPage() {
   const [selectedStaff, setSelectedStaff] = useState<StaffRow | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
+  
+  // Reset Passcode State
+  const [isResetPasscodeOpen, setIsResetPasscodeOpen] = useState(false);
+  const [newPasscode, setNewPasscode] = useState("");
+  const [staffToReset, setStaffToReset] = useState<StaffRow | null>(null);
 
   const handleSubmit = async () => {
     if (!formData.displayName) return;
+    if (formData.role === "admin" && !formData.email) {
+      toast.error("Email is required for Admin role");
+      return;
+    }
+    if (!formData.passcode) {
+      toast.error(formData.role === "admin" ? "Password is required" : "Passcode is required");
+      return;
+    }
     
     try {
       await createStaff.mutateAsync({
@@ -118,6 +148,23 @@ export default function StaffManagementPage() {
   const handleViewDetails = (staff: StaffRow) => {
     setSelectedStaff(staff);
     setIsDetailsOpen(true);
+  };
+
+  const handleOpenResetPasscode = (staff: StaffRow) => {
+    setStaffToReset(staff);
+    setNewPasscode("");
+    setIsResetPasscodeOpen(true);
+  };
+
+  const submitResetPasscode = async () => {
+    if (!staffToReset || !newPasscode) return;
+    try {
+      await resetPasscode.mutateAsync({ staffId: staffToReset.id, passcode: newPasscode });
+      setIsResetPasscodeOpen(false);
+      setNewPasscode("");
+    } catch {
+      // handled by mutation
+    }
   };
 
   const getRoleIcon = (role: string) => {
@@ -149,6 +196,13 @@ export default function StaffManagementPage() {
     });
   };
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -168,8 +222,8 @@ export default function StaffManagementPage() {
             <p className="text-sm sm:text-base text-gray-600">Manage your team members and their access.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={() => refetch()} className="shrink-0">
-              <RefreshCw className="w-4 h-4" />
+            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isRefetching || isRefreshing} className="shrink-0">
+              <RefreshCw className={cn("w-4 h-4", (isRefetching || isRefreshing) && "animate-spin")} />
             </Button>
             <Button onClick={() => setIsAddStaffOpen(true)} className="gap-2">
               <UserPlus className="w-4 h-4" />
@@ -221,6 +275,15 @@ export default function StaffManagementPage() {
                         {s.isActive ? "Active" : "Inactive"}
                       </Badge>
                       <div className="flex gap-1 sm:gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 sm:h-9 sm:w-9 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                          onClick={() => handleOpenResetPasscode(s)}
+                          title="Reset Password/PIN"
+                        >
+                          <KeyRound className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -282,13 +345,16 @@ export default function StaffManagementPage() {
               </div>
               
               <div className="space-y-2">
-                <Label className="text-xs sm:text-sm">Email</Label>
+                <Label className="text-xs sm:text-sm">
+                  {formData.role === "admin" ? "Email*" : "Email (Optional)"}
+                </Label>
                 <Input 
                   type="email"
                   placeholder="john@restaurant.com" 
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="h-9 sm:h-10 text-sm"
+                  required={formData.role === "admin"}
                 />
               </div>
               
@@ -317,16 +383,23 @@ export default function StaffManagementPage() {
               </div>
               
               <div className="space-y-2">
-                <Label className="text-xs sm:text-sm">Passcode (Optional)</Label>
+                <Label className="text-xs sm:text-sm">
+                  {formData.role === "admin" ? "Password*" : "Passcode (PIN)*"}
+                </Label>
                 <Input 
                   type="password" 
-                  placeholder="4-digit PIN" 
-                  maxLength={4} 
+                  placeholder={formData.role === "admin" ? "Secure Password" : "4-digit PIN"} 
+                  maxLength={formData.role === "admin" ? 50 : 4} 
                   value={formData.passcode}
                   onChange={(e) => setFormData({ ...formData, passcode: e.target.value })}
                   className="h-9 sm:h-10 text-sm"
+                  required
                 />
-                <p className="text-[10px] sm:text-xs text-gray-500">Used for quick terminal login</p>
+                <p className="text-[10px] sm:text-xs text-gray-500">
+                  {formData.role === "admin"
+                    ? "Used to login via the owner portal"
+                    : "Used for quick terminal login. They will only type their numeric login digits"}
+                </p>
               </div>
             </div>
 
@@ -482,6 +555,17 @@ export default function StaffManagementPage() {
 
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsDetailsOpen(false);
+                      handleOpenResetPasscode(selectedStaff);
+                    }} 
+                    className="w-full sm:w-auto h-9 sm:h-10 text-sm text-amber-600 border-amber-200 hover:bg-amber-50"
+                  >
+                    <KeyRound className="w-4 h-4 mr-2" />
+                    Reset {selectedStaff.role === "ADMIN" ? "Password" : "PIN"}
+                  </Button>
                   <Button variant="outline" onClick={() => setIsDetailsOpen(false)} className="w-full sm:w-auto h-9 sm:h-10 text-sm">
                     Close
                   </Button>
@@ -501,6 +585,48 @@ export default function StaffManagementPage() {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Reset Passcode Dialog */}
+        <Dialog open={isResetPasscodeOpen} onOpenChange={setIsResetPasscodeOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-amber-500" />
+                Reset {staffToReset?.role === "ADMIN" ? "Password" : "PIN"}
+              </DialogTitle>
+              <DialogDescription>
+                Enter a new {staffToReset?.role === "ADMIN" ? "password" : "passcode"} for {staffToReset?.fullName}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              <div className="space-y-2">
+                <Label>New {staffToReset?.role === "ADMIN" ? "Password" : "PIN (4 Digits)"}</Label>
+                <Input
+                  type={staffToReset?.role === "ADMIN" ? "text" : "password"}
+                  maxLength={staffToReset?.role === "ADMIN" ? 50 : 4}
+                  placeholder={staffToReset?.role === "ADMIN" ? "Secure Password" : "••••"}
+                  value={newPasscode}
+                  onChange={(e) => setNewPasscode(e.target.value)}
+                  className="h-10"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setIsResetPasscodeOpen(false)} className="w-full sm:w-auto">
+                Cancel
+              </Button>
+              <Button 
+                onClick={submitResetPasscode} 
+                className="w-full sm:w-auto" 
+                disabled={resetPasscode.isPending || !newPasscode || (staffToReset?.role !== "ADMIN" && newPasscode.length < 4)}
+              >
+                {resetPasscode.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Save {staffToReset?.role === "ADMIN" ? "Password" : "PIN"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

@@ -100,7 +100,7 @@ export class WhatsAppBillFormatter {
       billData.items.forEach((it, idx) => {
         lines.push(
           `${idx + 1}. ${it.name}`,
-          `   Qty: ${it.quantity}  Price: ${this.money(it.price, billData.currency)}  Total: ${this.money(it.total, billData.currency)}`
+          `   ${it.quantity} x ${this.money(it.price, billData.currency)} = ${this.money(it.total, billData.currency)}`
         );
       });
     }

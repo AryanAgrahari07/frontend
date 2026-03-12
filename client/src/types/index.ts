@@ -29,9 +29,15 @@ export interface RestaurantSettingsNotifications {
   [key: string]: boolean | undefined;
 }
 
+export interface RestaurantSettingsTimings {
+  openTime?: string;
+  closeTime?: string;
+}
+
 export interface RestaurantSettings {
   languages?: RestaurantSettingsLanguages;
   notifications?: RestaurantSettingsNotifications;
+  timings?: RestaurantSettingsTimings;
   // Allow future settings keys without breaking the type
   [key: string]: unknown;
 }
@@ -112,6 +118,16 @@ export interface MenuData {
   items: MenuItem[];
 }
 
+export interface MenuSuggestion {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  category?: string;
+  dietaryTags?: string[];
+}
+
 // === Table ===
 export type TableStatus = "AVAILABLE" | "OCCUPIED" | "RESERVED" | "BLOCKED";
 
@@ -165,6 +181,7 @@ export interface OrderItem {
     groupName?: string;
   }>;
   customizationAmount?: string | null;
+  kotNumber?: number | null;
 }
 
 export type paymentStatus = "PAID" | "DUE" | "PARTIALLY_PAID";
@@ -194,6 +211,7 @@ export interface Order {
   totalAmount: string;
   notes?: string;
   isClosed?: boolean;
+  orderNumber?: number;
   items?: OrderItem[];
   table?: {
     id: string;
@@ -254,6 +272,7 @@ export interface QueueEntry {
   seatedTime?: string;
   cancelledTime?: string;
   notes?: string;
+  table?: Table;
 }
 
 export interface QueueStats {

@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useParams } from "wouter";
 import { usePublicMenu } from "@/hooks/api";
-import type { MenuCategory, MenuItem } from "@/types";
+import type { MenuCategory, MenuItem, RestaurantSettings } from "@/types";
 import foodImg from "@assets/generated_images/exquisite_red_gourmet_dish.png";
 import {
   Dialog,
@@ -136,7 +136,7 @@ function ItemCustomizationDialog({
                       </span>
                       {variant.isDefault && (
                         <Badge className="ml-2 text-[10px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20">
-                          Default
+                          Popular
                         </Badge>
                       )}
                     </div>
@@ -368,6 +368,35 @@ export default function PublicMenuPage() {
   const restaurant = menuData?.restaurant;
   const currency = restaurant?.currency || "₹";
 
+  // Calculate if restaurant is currently open based on settings
+  const isOpen = useMemo(() => {
+    if (!restaurant) return true; // Default to true if not loaded
+    const settings = restaurant.settings as RestaurantSettings | undefined;
+    const openTime = settings?.timings?.openTime;
+    const closeTime = settings?.timings?.closeTime;
+
+    if (!openTime || !closeTime) return true; // If no timings set, assume always open
+
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTimeMinutes = currentHours * 60 + currentMinutes;
+
+    const [openH, openM] = openTime.split(':').map(Number);
+    const openTimeMinutes = openH * 60 + openM;
+
+    const [closeH, closeM] = closeTime.split(':').map(Number);
+    const closeTimeMinutes = closeH * 60 + closeM;
+
+    if (closeTimeMinutes >= openTimeMinutes) {
+      // Normal case: e.g. 09:00 to 22:00
+      return currentTimeMinutes >= openTimeMinutes && currentTimeMinutes <= closeTimeMinutes;
+    } else {
+      // Overnight case: e.g. 18:00 to 02:00 next day
+      return currentTimeMinutes >= openTimeMinutes || currentTimeMinutes <= closeTimeMinutes;
+    }
+  }, [restaurant]);
+
   const addressParts = [
     restaurant?.addressLine1,
     restaurant?.addressLine2,
@@ -468,10 +497,17 @@ export default function PublicMenuPage() {
             {restaurant?.name || "Restaurant"}
           </h1>
           <div className="mt-0.5 flex items-center justify-between gap-3">
-            <p className="text-white/70 text-xs sm:text-sm flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-              Open Now
-            </p>
+            {isOpen ? (
+              <p className="text-white/70 text-xs sm:text-sm flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                Open Now
+              </p>
+            ) : (
+              <p className="text-white/70 text-xs sm:text-sm flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                Closed
+              </p>
+            )}
 
             <div className="flex items-center gap-1">
               {/* Address action */}
@@ -740,7 +776,7 @@ export default function PublicMenuPage() {
           Q
         </div>
         <p className="text-xs font-medium text-muted-foreground">Thank you for dining with us</p>
-        <p className="text-[10px] text-muted-foreground/70 mt-1">Powered by OrderJi</p>
+        <p className="text-[10px] text-muted-foreground/70 mt-1">Powered by Order<span className="text-primary">zi</span></p>
       </footer>
     </div>
   );

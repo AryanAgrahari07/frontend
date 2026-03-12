@@ -10,7 +10,7 @@ export default function TestimonialsSection() {
         <div className="container mx-auto px-4 sm:px-6 text-center">
           <Quote className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mx-auto mb-6 sm:mb-8 md:mb-10 fill-current opacity-20" />
           <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-heading font-black italic tracking-tighter mb-8 sm:mb-10 md:mb-12 uppercase leading-tight px-4">
-            "Switching to OrderJi was the fastest decision we ever made. The ROI was immediate. Don't think twice—just do it."
+            "Switching to Order<span className="text-primary">zi</span> was the fastest decision we ever made. The ROI was immediate. Don't think twice—just do it."
           </h3>
           <div className="flex flex-col items-center gap-3 sm:gap-4">
             <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-none border-2 sm:border-3 md:border-4 border-white shadow-2xl overflow-hidden grayscale">
@@ -32,7 +32,7 @@ export default function TestimonialsSection() {
         <div className="w-full overflow-x-auto pb-16 pt-4 snap-x snap-mandatory cursor-grab active:cursor-grabbing [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="flex gap-4 sm:gap-6 w-max px-4 sm:px-6 container mx-auto">
             {[
-              { img: testimonial1, name: "Vikram Sethi", role: "Spice Garden", quote: "Switching to OrderJi was the fastest decision we ever made." },
+              { img: testimonial1, name: "Vikram Sethi", role: "Spice Garden", quote: <span>Switching to Order<span className="text-primary">zi</span> was the fastest decision we ever made.</span> },
               { img: testimonial2, name: "Priya Sharma", role: "Coastal Bites", quote: "Our table turnover rate increased by 30% in the first month." },
               { img: testimonial3, name: "Rahul Desai", role: "The Urban Wok", quote: "The KDS is instantly updating. Zero missed orders now." },
               { img: testimonial1, name: "Anita Roy", role: "Cafe Mocha", quote: "Customers love the digital menu. Billing is a breeze." },

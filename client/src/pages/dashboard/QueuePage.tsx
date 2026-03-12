@@ -27,12 +27,19 @@ import QRCode from "qrcode";
 export default function QueuePage() {
   const { restaurantId } = useAuth();
   const { data: restaurant } = useRestaurant(restaurantId);
-  const { data: queueEntries, isLoading, refetch } = useQueueActive(restaurantId);
+  const { data: queueEntries, isLoading, refetch, isRefetching } = useQueueActive(restaurantId);
   const { data: tables } = useTables(restaurantId);
   const { data: queueStats } = useQueueStats(restaurantId);
   
   const registerInQueue = useRegisterInQueue(restaurantId);
   const callNext = useCallNextGuest(restaurantId);
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
   const seatGuest = useSeatGuest(restaurantId);
   const cancelEntry = useCancelQueueEntry(restaurantId);
 
@@ -186,8 +193,8 @@ export default function QueuePage() {
           <p className="text-sm sm:text-base text-muted-foreground">Manage waitlists and seat guests efficiently.</p>
         </div> */}
         <div className="flex gap-2 w-full sm:w-auto flex-wrap">
-          <Button variant="outline" size="icon" onClick={() => refetch()} className="shrink-0">
-            <RefreshCw className="w-4 h-4" />
+          <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isRefetching || isRefreshing} className="shrink-0">
+            <RefreshCw className={cn("w-4 h-4", (isRefetching || isRefreshing) && "animate-spin")} />
           </Button>
           <Button 
             variant="secondary" 
@@ -461,7 +468,7 @@ export default function QueuePage() {
                                     )}
                                   >
                                     <div className="flex justify-between items-start mb-1">
-                                      <span className="font-bold text-base sm:text-lg">T{table.tableNumber}</span>
+                                      <span className="font-bold text-base sm:text-lg">{table.tableNumber.replace(/^T/i, '')}</span>
                                       {isOptimal && (
                                         <Badge variant="outline" className="text-[9px] sm:text-[10px] bg-green-50 text-green-700 border-green-200">
                                           Fits
@@ -614,7 +621,7 @@ export default function QueuePage() {
                                 )}
                               >
                                 <div className="flex justify-between items-start mb-1">
-                                  <span className="font-bold text-base sm:text-lg">T{table.tableNumber}</span>
+                                  <span className="font-bold text-base sm:text-lg">{table.tableNumber.replace(/^T/i, '')}</span>
                                   {isOptimal && (
                                     <Badge variant="outline" className="text-[9px] sm:text-[10px] bg-green-50 text-green-700 border-green-200">
                                       Optimal

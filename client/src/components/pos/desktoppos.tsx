@@ -168,6 +168,7 @@ export function DesktopPOS({
 }: DesktopPOSProps) {
   const { language } = useLanguage();
   const isWaiterMode = mode === "waiter";
+  const [vegFilter, setVegFilter] = useState<"all" | "veg" | "non-veg">("all");
 
   const handleActionClick = (callback?: () => void) => {
     if (orderMethod === "dine-in" && (!selectedTableId || selectedTableId === "none")) {
@@ -180,6 +181,11 @@ export function DesktopPOS({
   const discountNum = Math.max(0, parseFloat(discountAmount || "0") || 0);
 
   const filteredItems = menuItems.filter((item: MenuItem) => {
+    const isVeg = item.dietaryTags?.some(t => t.toLowerCase() === "veg");
+    const isVegMatch = vegFilter === "all" ? true : vegFilter === "veg" ? isVeg : !isVeg;
+
+    if (!isVegMatch) return false;
+
     if (!searchQuery && activeCategory) {
       return item.categoryId === activeCategory && item.isAvailable;
     } else if (searchQuery) {
@@ -306,41 +312,62 @@ export function DesktopPOS({
                       </div>
                     </div>
 
-                    {!isSearchOpen ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onSearchOpenChange(true)}
-                        className="flex-shrink-0 h-8 sm:h-9 px-2 sm:px-3"
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          if (vegFilter === "all") setVegFilter("veg");
+                          else if (vegFilter === "veg") setVegFilter("non-veg");
+                          else setVegFilter("all");
+                        }}
+                        className={cn(
+                          "flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-md border transition-colors bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary/50",
+                          vegFilter === "all" ? "border-gray-200 text-gray-700" :
+                            vegFilter === "veg" ? "border-green-600 bg-green-50" :
+                              "border-red-600 bg-red-50"
+                        )}
+                        title={`Filter: ${vegFilter === "all" ? "All" : vegFilter === "veg" ? "Veg" : "Non-Veg"} (Click to change)`}
                       >
-                        <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      </Button>
-                    ) : (
-                      <div className="flex items-center gap-2 flex-1 max-w-xs">
-                        <div className="relative flex-1">
-                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                          <Input
-                            type="text"
-                            placeholder="Search items..."
-                            value={searchQuery}
-                            onChange={(e) => onSearchQueryChange(e.target.value)}
-                            className="h-8 sm:h-9 pl-8 pr-2 text-xs sm:text-sm"
-                            autoFocus
-                          />
-                        </div>
+                        {vegFilter === "all" && <span className="text-[10px] sm:text-xs font-semibold leading-none">All</span>}
+                        {vegFilter === "veg" && <div className="size-2.5 sm:size-3 rounded-sm border border-green-600 bg-white relative after:content-[''] after:absolute after:inset-[1.5px] after:bg-green-600 after:rounded-full" />}
+                        {vegFilter === "non-veg" && <div className="size-2.5 sm:size-3 rounded-sm border border-red-600 bg-white relative after:content-[''] after:absolute after:inset-[1.5px] after:bg-red-600 after:rounded-full" />}
+                      </button>
+
+                      {!isSearchOpen ? (
                         <Button
                           size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            onSearchOpenChange(false);
-                            onSearchQueryChange("");
-                          }}
-                          className="flex-shrink-0 h-8 sm:h-9 px-2"
+                          variant="outline"
+                          onClick={() => onSearchOpenChange(true)}
+                          className="flex-shrink-0 h-8 sm:h-9 px-2 sm:px-3"
                         >
-                          <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </Button>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="flex items-center gap-2 flex-1 max-w-xs">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                            <Input
+                              type="text"
+                              placeholder="Search items..."
+                              value={searchQuery}
+                              onChange={(e) => onSearchQueryChange(e.target.value)}
+                              className="h-8 sm:h-9 pl-8 pr-2 text-xs sm:text-sm"
+                              autoFocus
+                            />
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              onSearchOpenChange(false);
+                              onSearchQueryChange("");
+                            }}
+                            className="flex-shrink-0 h-8 sm:h-9 px-2"
+                          >
+                            <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

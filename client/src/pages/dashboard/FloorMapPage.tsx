@@ -142,6 +142,13 @@ export default function FloorMapPage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
   // Set initial active category
   useMemo(() => {
     if (!activeCategory && menuData?.categories && menuData.categories.length > 0) {
@@ -355,7 +362,6 @@ export default function FloorMapPage() {
       toast.error("Please add items to the order");
       return;
     }
-    toast.success("Order saved!");
   };
 
   const handleSaveAndPrint = async () => {
@@ -411,9 +417,16 @@ export default function FloorMapPage() {
         }
       }
 
+      const waiterDisplay = staff?.find((s) => s.id === selectedWaiterIdForOrder)?.fullName;
+
       // Print KOT to thermal printer
       if (restaurant) {
-        const kotData = buildKOTDataFromOrder({ order: created, restaurant });
+        const kotData = buildKOTDataFromOrder({ 
+          order: created, 
+          restaurant, 
+          tableNumber: selectedTableForOrder.tableNumber,
+          waiterName: waiterDisplay 
+        });
         await printKOT(kotData);
       }
 
@@ -840,8 +853,8 @@ export default function FloorMapPage() {
           ) : null}
 
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" size="icon" onClick={() => refetch()} className="shrink-0">
-              <RefreshCw className="w-4 h-4" />
+            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isRefreshing} className="shrink-0">
+              <RefreshCw className={cn("w-4 h-4", (isRefreshing) && "animate-spin")} />
             </Button>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
@@ -1506,59 +1519,58 @@ export default function FloorMapPage() {
                 </Badge>
               </div>
 
-              {/* Print Bill */}
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleThermalPrint}
-                disabled={isPrinting || !isPrinterConnected}
-                title={!isPrinterConnected ? "Pair/connect printer from the sidebar first" : undefined}
-              >
-                {isPrinting ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Printer className="w-4 h-4 mr-2" />
-                )}
-                Print Bill
-              </Button>
+              {/* Sticky Footer for Actions */}
+              <div className="sticky bottom-[-16px] sm:bottom-[-24px] bg-background pt-2 pb-4 sm:pb-6 -mx-4 px-4 sm:-mx-6 sm:px-6 border-t mt-4 z-10 flex flex-col gap-3">
+                {/* Print Bill */}
+                <Button
+                  variant="outline"
+                  className="w-full h-12 sm:h-10 border-foreground/20 font-semibold"
+                  onClick={handleThermalPrint}
+                  disabled={isPrinting || !isPrinterConnected}
+                  title={!isPrinterConnected ? "Pair/connect printer from the sidebar first" : undefined}
+                >
+                  {isPrinting ? (
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  ) : (
+                    <Printer className="w-5 h-5 mr-2" />
+                  )}
+                  Print Bill
+                </Button>
 
-              {/* Close Order - show only when paid + served and not already closed */}
-              {selectedOrderForBill.paymentStatus === "PAID" &&
-                selectedOrderForBill.status === "SERVED" &&
-                !selectedOrderForBill.isClosed && (
-                  <>
-                    <Separator />
-                    <Button
-                      variant="default"
-                      className="w-full"
-                      disabled={closeOrder.isPending}
-                      onClick={async () => {
-                        try {
-                          await closeOrder.mutateAsync(selectedOrderForBill.id);
-                          setIsBillDialogOpen(false);
-                          setSelectedOrderForBill(null);
-                        } catch {
-                          // handled by hook
-                        }
-                      }}
-                    >
-                      {closeOrder.isPending ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : null}
-                      Close Order
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Closing will end this table session so new orders create a fresh bill.
-                    </p>
-                  </>
-                )}
+                {/* Close Order - show only when paid + served and not already closed */}
+                {selectedOrderForBill.paymentStatus === "PAID" &&
+                  selectedOrderForBill.status === "SERVED" &&
+                  !selectedOrderForBill.isClosed && (
+                    <div className="space-y-2">
+                      <Button
+                        variant="default"
+                        className="w-full h-12 sm:h-10 font-bold"
+                        disabled={closeOrder.isPending}
+                        onClick={async () => {
+                          try {
+                            await closeOrder.mutateAsync(selectedOrderForBill.id);
+                            setIsBillDialogOpen(false);
+                            setSelectedOrderForBill(null);
+                          } catch {
+                            // handled by hook
+                          }
+                        }}
+                      >
+                        {closeOrder.isPending ? (
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        ) : null}
+                        Close Order
+                      </Button>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
+                        Closing will end this table session so new orders create a fresh bill.
+                      </p>
+                    </div>
+                  )}
 
-              {/* Payment Buttons - Show if not fully paid */}
-              {selectedOrderForBill.paymentStatus !== "PAID" && (
-                <>
-                  <Separator />
+                {/* Payment Buttons - Show if not fully paid */}
+                {selectedOrderForBill.paymentStatus !== "PAID" && (
                   <div>
-                    <h4 className="font-semibold text-sm mb-3">
+                    <h4 className="font-semibold text-[10px] sm:text-xs uppercase tracking-wide text-muted-foreground mb-2">
                       {selectedOrderForBill.paymentStatus === "PARTIALLY_PAID"
                         ? "Pay Outstanding Amount"
                         : "Accept Payment"}
@@ -1567,34 +1579,34 @@ export default function FloorMapPage() {
                       <Button
                         onClick={() => handlePayment(selectedOrderForBill, "CASH")}
                         variant="outline"
-                        className="flex flex-col items-center gap-1 h-auto py-3"
+                        className="flex flex-col items-center justify-center gap-1 h-14 sm:h-auto sm:py-3"
                         disabled={updatePaymentStatus.isPending}
                       >
-                        <DollarSign className="w-5 h-5" />
-                        <span className="text-xs">Cash</span>
+                        <DollarSign className="w-4 h-4 mb-0.5" />
+                        <span className="text-[10px] sm:text-[11px] leading-tight flex-1">Cash</span>
                       </Button>
                       <Button
                         onClick={() => handlePayment(selectedOrderForBill, "CARD")}
                         variant="outline"
-                        className="flex flex-col items-center gap-1 h-auto py-3"
+                        className="flex flex-col items-center justify-center gap-1 h-14 sm:h-auto sm:py-3"
                         disabled={updatePaymentStatus.isPending}
                       >
-                        <CreditCard className="w-5 h-5" />
-                        <span className="text-xs">Card</span>
+                        <CreditCard className="w-4 h-4 mb-0.5" />
+                        <span className="text-[10px] sm:text-[11px] leading-tight flex-1">Card</span>
                       </Button>
                       <Button
                         onClick={() => handlePayment(selectedOrderForBill, "UPI")}
                         variant="outline"
-                        className="flex flex-col items-center gap-1 h-auto py-3"
+                        className="flex flex-col items-center justify-center gap-1 h-14 sm:h-auto sm:py-3"
                         disabled={updatePaymentStatus.isPending}
                       >
-                        <QrCode className="w-5 h-5" />
-                        <span className="text-xs">UPI</span>
+                        <QrCode className="w-4 h-4 mb-0.5" />
+                        <span className="text-[10px] sm:text-[11px] leading-tight flex-1">UPI</span>
                       </Button>
                     </div>
                   </div>
-                </>
-              )}
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
