@@ -15,30 +15,51 @@ import { AuthGate } from "@/components/AuthGate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OfflineBanner } from "@/components/OfflineBanner";
 
-// Lazy-loaded Pages (L1: Code Splitting)
-const LandingPage = lazy(() => import("@/pages/LandingPage"));
-const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
-const OnboardingPage = lazy(() => import("@/pages/onboarding/OnboardingPage"));
-const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
-const MenuPage = lazy(() => import("@/pages/dashboard/MenuPage"));
-const QRCodesPage = lazy(() => import("@/pages/dashboard/QRCodesPage"));
-const AnalyticsPage = lazy(() => import("@/pages/dashboard/AnalyticsPage"));
-const SettingsPage = lazy(() => import("@/pages/dashboard/SettingsPage"));
-const InventoryPage = lazy(() => import("@/pages/dashboard/InventoryPage"));
-const FloorMapPage = lazy(() => import("@/pages/dashboard/FloorMapPage"));
-const QueuePage = lazy(() => import("@/pages/dashboard/QueuePage"));
-const LiveOrdersPage = lazy(() => import("@/pages/dashboard/LiveOrdersPage"));
-const CancelledOrdersPage = lazy(() => import("@/pages/dashboard/CancelledOrdersPage"));
-const TransactionsPage = lazy(() => import("@/pages/dashboard/TransactionsPage"));
-const KitchenKDSPage = lazy(() => import("@/pages/dashboard/KitchenKDSPage"));
-const WaiterTerminalPage = lazy(() => import("@/pages/dashboard/WaiterTerminalPage"));
-const StaffManagementPage = lazy(() => import("@/pages/dashboard/StaffManagementPage"));
-const PublicMenuPage = lazy(() => import("@/pages/public/PublicMenuPage"));
-const QueueRegistrationPage = lazy(() => import("@/pages/public/QueueRegistrationPage"));
-const SubscriptionExpiredPage = lazy(() => import("@/pages/admin/SubscriptionExpiredPage"));
-const StaffSubscriptionExpiredPage = lazy(() => import("@/pages/public/StaffSubscriptionExpiredPage"));
-const PrivacyPolicyPage = lazy(() => import("@/pages/public/PrivacyPolicyPage"));
-const TermsOfServicePage = lazy(() => import("@/pages/public/TermsOfServicePage"));
+// A wrapper around `lazy` that auto-refreshes if a chunk fails to load due to deployment updates.
+const lazyImport = (importFunc: () => Promise<{ default: React.ComponentType<any> }>) => {
+  return lazy(async () => {
+    try {
+      const component = await importFunc();
+      window.sessionStorage.removeItem('chunk_failed_reload');
+      return component;
+    } catch (error: any) {
+      if (error?.message?.includes('Failed to fetch dynamically imported module')) {
+        const hasReloaded = window.sessionStorage.getItem('chunk_failed_reload');
+        if (!hasReloaded) {
+          window.sessionStorage.setItem('chunk_failed_reload', 'true');
+          window.location.reload();
+          // Return a never-resolving promise to prevent React from showing an error while reloading.
+          return new Promise<{ default: React.ComponentType<any> }>(() => {});
+        }
+      }
+      throw error;
+    }
+  });
+};
+
+const LandingPage = lazyImport(() => import("@/pages/LandingPage"));
+const LoginPage = lazyImport(() => import("@/pages/auth/LoginPage"));
+const OnboardingPage = lazyImport(() => import("@/pages/onboarding/OnboardingPage"));
+const DashboardPage = lazyImport(() => import("@/pages/dashboard/DashboardPage"));
+const MenuPage = lazyImport(() => import("@/pages/dashboard/MenuPage"));
+const QRCodesPage = lazyImport(() => import("@/pages/dashboard/QRCodesPage"));
+const AnalyticsPage = lazyImport(() => import("@/pages/dashboard/AnalyticsPage"));
+const SettingsPage = lazyImport(() => import("@/pages/dashboard/SettingsPage"));
+const InventoryPage = lazyImport(() => import("@/pages/dashboard/InventoryPage"));
+const FloorMapPage = lazyImport(() => import("@/pages/dashboard/FloorMapPage"));
+const QueuePage = lazyImport(() => import("@/pages/dashboard/QueuePage"));
+const LiveOrdersPage = lazyImport(() => import("@/pages/dashboard/LiveOrdersPage"));
+const CancelledOrdersPage = lazyImport(() => import("@/pages/dashboard/CancelledOrdersPage"));
+const TransactionsPage = lazyImport(() => import("@/pages/dashboard/TransactionsPage"));
+const KitchenKDSPage = lazyImport(() => import("@/pages/dashboard/KitchenKDSPage"));
+const WaiterTerminalPage = lazyImport(() => import("@/pages/dashboard/WaiterTerminalPage"));
+const StaffManagementPage = lazyImport(() => import("@/pages/dashboard/StaffManagementPage"));
+const PublicMenuPage = lazyImport(() => import("@/pages/public/PublicMenuPage"));
+const QueueRegistrationPage = lazyImport(() => import("@/pages/public/QueueRegistrationPage"));
+const SubscriptionExpiredPage = lazyImport(() => import("@/pages/admin/SubscriptionExpiredPage"));
+const StaffSubscriptionExpiredPage = lazyImport(() => import("@/pages/public/StaffSubscriptionExpiredPage"));
+const PrivacyPolicyPage = lazyImport(() => import("@/pages/public/PrivacyPolicyPage"));
+const TermsOfServicePage = lazyImport(() => import("@/pages/public/TermsOfServicePage"));
 
 // Global loading fallback
 function PageLoader() {
