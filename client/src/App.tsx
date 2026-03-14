@@ -37,6 +37,8 @@ const PublicMenuPage = lazy(() => import("@/pages/public/PublicMenuPage"));
 const QueueRegistrationPage = lazy(() => import("@/pages/public/QueueRegistrationPage"));
 const SubscriptionExpiredPage = lazy(() => import("@/pages/admin/SubscriptionExpiredPage"));
 const StaffSubscriptionExpiredPage = lazy(() => import("@/pages/public/StaffSubscriptionExpiredPage"));
+const PrivacyPolicyPage = lazy(() => import("@/pages/public/PrivacyPolicyPage"));
+const TermsOfServicePage = lazy(() => import("@/pages/public/TermsOfServicePage"));
 
 // Global loading fallback
 function PageLoader() {
@@ -166,6 +168,8 @@ function Router() {
         {/* Public Routes */}
         <Route path="/r/:slug" component={PublicMenuPage} />
         <Route path="/q/:slug" component={QueueRegistrationPage} />
+        <Route path="/privacy-policy" component={PrivacyPolicyPage} />
+        <Route path="/terms-of-service" component={TermsOfServicePage} />
 
         <Route path="/admin/subscription-expired">
           {() => (

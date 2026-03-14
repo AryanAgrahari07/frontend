@@ -74,13 +74,13 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 The all-in-one operating system built for modern Indian restaurants. Speed, power, and scale.
               </p>
               <div className="flex gap-3 pt-2">
-                <a href="#" className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center hover:bg-primary/20 hover:border-primary/50 hover:text-primary text-white/60 transition-all">
+                <a href="https://x.com/orderzi" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center hover:bg-primary/20 hover:border-primary/50 hover:text-primary text-white/60 transition-all">
                   <Twitter className="w-4 h-4" />
                 </a>
-                <a href="#" className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center hover:bg-primary/20 hover:border-primary/50 hover:text-primary text-white/60 transition-all">
+                <a href="https://linkedin.com/company/orderzi" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center hover:bg-primary/20 hover:border-primary/50 hover:text-primary text-white/60 transition-all">
                   <Linkedin className="w-4 h-4" />
                 </a>
-                <a href="#" className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center hover:bg-primary/20 hover:border-primary/50 hover:text-primary text-white/60 transition-all">
+                <a href="https://instagram.com/orderzi_official" target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center hover:bg-primary/20 hover:border-primary/50 hover:text-primary text-white/60 transition-all">
                   <Instagram className="w-4 h-4" />
                 </a>
               </div>
@@ -91,33 +91,41 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               <div>
                 <h4 className="font-heading font-bold text-sm sm:text-base text-white mb-6">Product</h4>
                 <ul className="space-y-4 text-sm sm:text-base font-medium text-white/50">
-                  <li><a href="#features" className="hover:text-white hover:translate-x-1 transition-all inline-block">Features</a></li>
-                  <li><a href="#how-it-works" className="hover:text-white hover:translate-x-1 transition-all inline-block">How it Works</a></li>
-                  <li><a href="#testimonials" className="hover:text-white hover:translate-x-1 transition-all inline-block">Customers</a></li>
-                  <li><a href="#" className="hover:text-white hover:translate-x-1 transition-all inline-block">Pricing</a></li>
+                  <li><a href="/#features" className="hover:text-white hover:translate-x-1 transition-all inline-block">Features</a></li>
+                  <li><a href="/#how-it-works" className="hover:text-white hover:translate-x-1 transition-all inline-block">How it Works</a></li>
+                  <li><a href="/#testimonials" className="hover:text-white hover:translate-x-1 transition-all inline-block">Customers</a></li>
+                  <li><Link href="/pricing"><div className="hover:text-white hover:translate-x-1 transition-all inline-block cursor-pointer">Pricing</div></Link></li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-heading font-bold text-sm sm:text-base text-white mb-6">Company</h4>
                 <ul className="space-y-4 text-sm sm:text-base font-medium text-white/50">
-                  <li><a href="#" className="hover:text-white hover:translate-x-1 transition-all inline-block">About Us</a></li>
-                  <li><a href="#" className="hover:text-white hover:translate-x-1 transition-all inline-block">Careers</a></li>
-                  <li><a href="#" className="hover:text-white hover:translate-x-1 transition-all inline-block">Blog</a></li>
-                  <li><a href="#contact" className="hover:text-white hover:translate-x-1 transition-all inline-block">Contact</a></li>
+                  <li><Link href="/about"><div className="hover:text-white hover:translate-x-1 transition-all inline-block cursor-pointer">About Us</div></Link></li>
+                  <li><Link href="/careers"><div className="hover:text-white hover:translate-x-1 transition-all inline-block cursor-pointer">Careers</div></Link></li>
+                  <li><Link href="/blog"><div className="hover:text-white hover:translate-x-1 transition-all inline-block cursor-pointer">Blog</div></Link></li>
+                  <li><a href="/#contact" className="hover:text-white hover:translate-x-1 transition-all inline-block">Contact</a></li>
                 </ul>
               </div>
               <div className="col-span-2 sm:col-span-1 border-t sm:border-t-0 border-white/[0.05] pt-8 sm:pt-0 mt-2 sm:mt-0">
                 <ul className="space-y-5 text-sm sm:text-base font-medium text-white/50 flex flex-col">
                   <li className="flex flex-col gap-2">
                     <span className="font-heading font-bold text-white text-sm sm:text-base">Support</span>
-                    <a href="mailto:hello@orderzi.in" className="flex items-center gap-2 hover:text-white transition-colors">
+                    <a href="mailto:support@orderzi.com" className="flex items-center gap-2 hover:text-white transition-colors">
                       <Mail className="w-4 h-4 text-white/40" />
-                      hello@orderzi.in
+                      support@orderzi.com
+                    </a>
+                    <a href="mailto:contact@orderzi.com" className="flex items-center gap-2 hover:text-white transition-colors mt-2">
+                      <Mail className="w-4 h-4 text-white/40" />
+                      contact@orderzi.com
                     </a>
                   </li>
                   <li className="flex flex-col sm:flex-col gap-4 sm:gap-4 pt-4 border-t border-white/[0.05]">
-                    <a href="#" className="text-sm hover:text-white transition-colors">Privacy Policy</a>
-                    <a href="#" className="text-sm hover:text-white transition-colors">Terms of Service</a>
+                    <Link href="/privacy-policy">
+                      <div className="text-sm hover:text-white transition-colors cursor-pointer inline-block">Privacy Policy</div>
+                    </Link>
+                    <Link href="/terms-of-service">
+                      <div className="text-sm hover:text-white transition-colors cursor-pointer inline-block">Terms of Service</div>
+                    </Link>
                   </li>
                 </ul>
               </div>

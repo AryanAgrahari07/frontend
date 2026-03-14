@@ -48,7 +48,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { LogoSelector } from "@/components/logo/logo-selector";
+// import { LogoSelector } from "@/components/logo/logo-selector";
 
 const SHOP_TYPES = [
   { id: "fine-dine", label: "Fine Dine", icon: Utensils, desc: "Premium dining experience with table service." },
@@ -704,11 +704,11 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {restaurantId && (
+          {/* {restaurantId && (
             <LogoSelector
               restaurantId={restaurantId}
             />
-          )}
+          )} */}
 
           {/* <Card>
             <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-4">

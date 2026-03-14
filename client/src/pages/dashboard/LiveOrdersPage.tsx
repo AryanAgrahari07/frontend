@@ -58,6 +58,7 @@ import {
   useRemoveOrderServiceCharge,
   useRestaurantLogo,
   useAddOrderItems,
+  useMarkOrderItemsServed,
 } from "@/hooks/api";
 import type { Order, MenuItem, OrderStatus, PaymentMethod } from "@/types";
 import type { POSCartLineItem } from "@/types/pos";
@@ -123,6 +124,7 @@ export default function LiveOrdersPage() {
   const removeServiceCharge = useRemoveOrderServiceCharge(restaurantId);
 
   const addOrderItems = useAddOrderItems(restaurantId);
+  const markOrderItemsServed = useMarkOrderItemsServed(restaurantId);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedOrderForEdit, setSelectedOrderForEdit] = useState<Order | null>(null);
@@ -437,8 +439,7 @@ export default function LiveOrdersPage() {
 
     try {
       if (selectedOrderForEdit) {
-        // Add items to existing order
-        await addOrderItems.mutateAsync({
+        const response = await addOrderItems.mutateAsync({
           orderId: selectedOrderForEdit.id,
           items: manualCart.map((item) => ({
             menuItemId: item.menuItemId,
@@ -447,6 +448,13 @@ export default function LiveOrdersPage() {
             modifierIds: item.modifierIds,
           })),
         });
+        
+        // Admin direct-serve: mark ONLY the newly added items as SERVED (not the whole order)
+        if (isAdmin && response.newItems?.length) {
+          const newItemIds = response.newItems.map((i: any) => i.id);
+          await markOrderItemsServed.mutateAsync({ orderId: selectedOrderForEdit.id, itemIds: newItemIds });
+        }
+        
         toast.success(`Items saved to Order #${selectedOrderForEdit.orderNumber || selectedOrderForEdit.id.slice(-4)}`);
       } else {
         const orderTypeMap = {
@@ -462,7 +470,7 @@ export default function LiveOrdersPage() {
           "due": "DUE",
         };
 
-        const order = await createOrder.mutateAsync({
+        const result = await createOrder.mutateAsync({
           tableId: orderMethod === "dine-in" ? selectedTableId : undefined,
           orderType: orderTypeMap[orderMethod] as "DINE_IN" | "TAKEAWAY" | "DELIVERY",
           waiveServiceCharge: orderMethod === "dine-in" ? waiveServiceCharge : false,
@@ -478,6 +486,8 @@ export default function LiveOrdersPage() {
           notes: cookingNote.trim() || undefined,
         });
 
+        const order = result.order;
+
         // Apply discount if set
         const discountNum = parseFloat(discountAmount || "0");
         if (isAdmin && discountAmount.trim() && !Number.isNaN(discountNum) && discountNum > 0) {
@@ -488,6 +498,19 @@ export default function LiveOrdersPage() {
             });
           } catch {
             toast.error("Order created, but failed to apply discount");
+          }
+        }
+
+        // Admin direct-serve: mark newly added items as SERVED (no kitchen step)
+        // newItems array comes from createOrder response (works for both pure new and merged-to-existing orders)
+        const itemsToMark = result.newItems || order.items;
+        if (isAdmin && itemsToMark?.length) {
+          // Double safeguard: only mark items not already served
+          const newItemIds = itemsToMark
+            .filter((i: any) => i.status !== "SERVED")
+            .map((i: any) => i.id);
+          if (newItemIds.length > 0) {
+            await markOrderItemsServed.mutateAsync({ orderId: order.id, itemIds: newItemIds });
           }
         }
 
@@ -552,7 +575,7 @@ export default function LiveOrdersPage() {
           "due": "DUE",
         };
 
-        order = await createOrder.mutateAsync({
+        const result = await createOrder.mutateAsync({
           tableId: orderMethod === "dine-in" ? selectedTableId : undefined,
           orderType: orderTypeMap[orderMethod] as "DINE_IN" | "TAKEAWAY" | "DELIVERY",
           waiveServiceCharge: orderMethod === "dine-in" ? waiveServiceCharge : false,
@@ -567,6 +590,7 @@ export default function LiveOrdersPage() {
           paymentStatus: paymentStatusMap[paymentMethod] as "PAID" | "DUE",
           notes: cookingNote.trim() || undefined,
         });
+        order = result.order;
 
         // Apply discount if set
         const discountNum = parseFloat(discountAmount || "0");
@@ -580,7 +604,7 @@ export default function LiveOrdersPage() {
             toast.error("Order created, but failed to apply discount");
           }
         }
-        
+
         toast.success(
           `KOT printed! ${orderMethod === "dine-in" ? `Table ${tables?.find((t) => t.id === selectedTableId)?.tableNumber || selectedTableId}` : ""} - ${manualCart.length} items`,
         );
@@ -654,7 +678,7 @@ export default function LiveOrdersPage() {
           "due": "DUE",
         };
 
-        const order = await createOrder.mutateAsync({
+        const result = await createOrder.mutateAsync({
           tableId: orderMethod === "dine-in" ? selectedTableId : undefined,
           orderType: orderTypeMap[orderMethod] as "DINE_IN" | "TAKEAWAY" | "DELIVERY",
           waiveServiceCharge: orderMethod === "dine-in" ? waiveServiceCharge : false,
@@ -669,6 +693,7 @@ export default function LiveOrdersPage() {
           paymentStatus: paymentStatusMap[paymentMethod] as "PAID" | "DUE",
           notes: cookingNote.trim() || undefined,
         });
+        const order = result.order;
 
         // Apply discount (admin only) after order creation
         const discountNum = parseFloat(discountAmount || "0");
@@ -911,7 +936,7 @@ export default function LiveOrdersPage() {
     setSearchQuery("");
     setIsSearchOpen(false);
     setActiveCategory(menuData?.categories?.[0]?.id || "");
-    
+
     if (isMobile) {
       setShowMobilePOS(true);
     } else {
@@ -1049,8 +1074,8 @@ export default function LiveOrdersPage() {
             title={
               selectedOrderForEdit
                 ? (selectedOrderForEdit.table?.tableNumber
-                    ? `Add Items — T${selectedOrderForEdit.table.tableNumber}`
-                    : `Add Items — Order #${selectedOrderForEdit.orderNumber ? String(selectedOrderForEdit.orderNumber).padStart(4, "0") : selectedOrderForEdit.id.slice(-4)}`)
+                  ? `Add Items — T${selectedOrderForEdit.table.tableNumber}`
+                  : `Add Items — Order #${selectedOrderForEdit.orderNumber ? String(selectedOrderForEdit.orderNumber).padStart(4, "0") : selectedOrderForEdit.id.slice(-4)}`)
                 : "New Order"
             }
             hideTableSelect={!!selectedOrderForEdit}
@@ -1170,8 +1195,8 @@ export default function LiveOrdersPage() {
                 title={
                   selectedOrderForEdit
                     ? (selectedOrderForEdit.table?.tableNumber
-                        ? `Add Items — T${selectedOrderForEdit.table.tableNumber}`
-                        : `Add Items — Order #${selectedOrderForEdit.orderNumber ? String(selectedOrderForEdit.orderNumber).padStart(4, "0") : selectedOrderForEdit.id.slice(-4)}`)
+                      ? `Add Items — T${selectedOrderForEdit.table.tableNumber}`
+                      : `Add Items — Order #${selectedOrderForEdit.orderNumber ? String(selectedOrderForEdit.orderNumber).padStart(4, "0") : selectedOrderForEdit.id.slice(-4)}`)
                     : "New Order"
                 }
                 hideTableSelect={!!selectedOrderForEdit}
@@ -1255,7 +1280,7 @@ export default function LiveOrdersPage() {
                   className="relative overflow-hidden border-l-4 border-l-primary shadow-md hover:shadow-lg transition-shadow"
                 >
                   {/* Add Items Button - top-right of card */}
-                  {(order.status === "PENDING" || order.status === "PREPARING" || order.status === "READY" || order.status === "SERVED") && order.status !== "CANCELLED" && (
+                  {(order.status === "PENDING" || order.status === "PREPARING" || order.status === "READY" || order.status === "SERVED") && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1285,8 +1310,8 @@ export default function LiveOrdersPage() {
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col gap-4">
                       {/* Header Section */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div className="space-y-2 pr-10 sm:pr-12">
+                        <div className="flex items-center gap-2 flex-wrap pr-2">
                           <span className="text-lg sm:text-xl font-bold font-heading">
                             {order.table?.tableNumber
                               ? `Table ${order.table.tableNumber}`

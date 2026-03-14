@@ -450,7 +450,7 @@ export function useCreateOrder(restaurantId: string | null) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateOrderInput) =>
-      api.post<{ order: Order }>(`/api/restaurants/${restaurantId}/orders`, data).then((r) => r.order),
+      api.post<{ order: Order; newItems?: Array<{ id: string; [key: string]: unknown }> }>(`/api/restaurants/${restaurantId}/orders`, data).then((r) => r),
     onSuccess: () => {
       if (restaurantId) {
         qc.invalidateQueries({ queryKey: ["orders", restaurantId] });
@@ -585,14 +585,14 @@ export function useAddOrderItems(restaurantId: string | null) {
       paymentMethod?: "CASH" | "CARD" | "UPI" | "DUE";
       paymentStatus?: "PAID" | "DUE";
     }) =>
-      api.post<{ order: Order; newItems: unknown[] }>(
+      api.post<{ order: Order; newItems: Array<{ id: string; [key: string]: unknown }> }>(
         `/api/restaurants/${restaurantId}/orders/${orderId}/items`,
         {
           items,
           paymentMethod,
           paymentStatus
         }
-      ).then((r) => r.order),
+      ).then((r) => r), // Return full response so caller can access newItems
     onSuccess: () => {
       if (restaurantId) {
         qc.invalidateQueries({ queryKey: ["orders", restaurantId] });
@@ -600,6 +600,25 @@ export function useAddOrderItems(restaurantId: string | null) {
       }
     },
     onError: (e: Error) => toast.error(e.message || "Failed to add items"),
+  });
+}
+
+export function useMarkOrderItemsServed(restaurantId: string | null) {
+  return useMutation({
+    mutationFn: ({
+      orderId,
+      itemIds,
+      status = "SERVED",
+    }: {
+      orderId: string;
+      itemIds: string[];
+      status?: string;
+    }) =>
+      api.patch<{ updated: number; status: string }>(
+        `/api/restaurants/${restaurantId}/orders/${orderId}/items/status-bulk`,
+        { itemIds, status }
+      ),
+    onError: (e: Error) => toast.error(e.message || "Failed to update item status"),
   });
 }
 

@@ -66,8 +66,8 @@ export default function ContactSection() {
 
             <div className="space-y-4 pt-2">
               {[
-                { icon: Phone, label: "+91 98765 43210", subtitle: "Mon — Sat, 9am — 7pm IST" },
-                { icon: Mail, label: "hello@orderzi.in", subtitle: "We reply within 24 hours" },
+                { icon: Mail, label: "support@orderzi.com", subtitle: "For technical queries" },
+                { icon: Mail, label: "contact@orderzi.com", subtitle: "For business inquiries" },
                 { icon: MapPin, label: "Mumbai, India", subtitle: "Serving restaurants nationwide" },
               ].map((item, i) => {
                 const Icon = item.icon;
